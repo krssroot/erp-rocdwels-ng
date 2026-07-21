@@ -1,19 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useSoftDelete } from "@/lib/data";
-import { PageHeader, EmptyState, ConfirmDelete } from "@/components/shared";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus } from "lucide-react";
 import { fmtNGN } from "@/lib/roles";
 import { toast } from "sonner";
+import { useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/_authenticated/cost-codes")({
   ssr: false,
@@ -25,7 +13,9 @@ const CATS = ["Materials", "Labour", "Equipment", "Overhead", "Subcontractor"] a
 function CostCodesPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [openBudget, setOpenBudget] = useState(false);
   const del = useSoftDelete("cost_codes");
+  const { roles } = useSession();
 
   const { data: projects } = useQuery({
     queryKey: ["projects"],
@@ -61,72 +51,136 @@ function CostCodesPage() {
     setOpen(false);
   }
 
+  // New Budget dialog state
+  const [budgetProject, setBudgetProject] = useState<string>("");
+  const [budgetLines, setBudgetLines] = useState<any[]>([]);
+
+  function addBudgetLine() {
+    setBudgetLines([...budgetLines, { code: "", category: "Materials", description: "", budgeted_amount: 0 }]);
+  }
+  function updateBudgetLine(i: number, col: string, val: any) {
+    const copy = [...budgetLines];
+    copy[i] = { ...copy[i], [col]: val };
+    setBudgetLines(copy);
+  }
+  async function saveBudget() {
+    if (!budgetProject) return toast.error("Project is required");
+    if (budgetLines.length === 0) return toast.error("Add at least one cost code line");
+    const payload = budgetLines.map((l) => ({ ...l, project_id: budgetProject }));
+    const { error } = await supabase.from("cost_codes").insert(payload);
+    if (error) return toast.error(error.message);
+    toast.success("Budget created");
+    qc.invalidateQueries({ queryKey: ["cost_codes"] });
+    setBudgetProject(""); setBudgetLines([]); setOpenBudget(false);
+  }
+
+  const canCreateBudget = roles.some((r) => ["admin", "accountant", "site_manager"].includes(r));
+
   return (
     <div>
       <PageHeader
         title="Cost Codes"
         description="Per-project budget breakdown by category"
         action={
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" /> New Cost Code</Button></DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>New Cost Code</DialogTitle></DialogHeader>
-              <div className="space-y-3">
-                <div className="space-y-2"><Label>Project</Label>
-                  <Select value={form.project_id} onValueChange={(v) => setForm({ ...form, project_id: v })}>
-                    <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
-                    <SelectContent>{(projects ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
-                  </Select>
+          <div className="flex items-center gap-2">
+            {canCreateBudget && (
+              <>
+                <Dialog open={openBudget} onOpenChange={setOpenBudget}>
+                  <DialogTrigger asChild><Button variant="secondary">New Budget</Button></DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader><DialogTitle>New Budget</DialogTitle></DialogHeader>
+                    <div className="space-y-3">
+                      <div className="space-y-2"><Label>Project</Label>
+                        <Select value={budgetProject} onValueChange={(v) => setBudgetProject(v)}>
+                          <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
+                          <SelectContent>{(projects ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <table className="w-full">
+                          <thead><tr><th>Code</th><th>Category</th><th>Description</th><th>Budgeted</th></tr></thead>
+                          <tbody>
+                            {budgetLines.map((l, i) => (
+                              <tr key={i} className="border-t">
+                                <td><Input value={l.code} onChange={(e) => updateBudgetLine(i, "code", e.target.value)} /></td>
+                                <td>
+                                  <Select value={l.category} onValueChange={(v) => updateBudgetLine(i, "category", v)}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>{CATS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                                  </Select>
+                                </td>
+                                <td><Input value={l.description} onChange={(e) => updateBudgetLine(i, "description", e.target.value)} /></td>
+                                <td><Input type="number" value={l.budgeted_amount} onChange={(e) => updateBudgetLine(i, "budgeted_amount", Number(e.target.value))} /></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <div className="mt-2"><Button variant="ghost" onClick={addBudgetLine}>Add a line</Button></div>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={saveBudget}>Create Budget</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                <div className="ml-2">
+                  <Dialog open={open} onOpenChange={setOpen}>
+                    <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" /> New Cost Code</Button></DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader><DialogTitle>New Cost Code</DialogTitle></DialogHeader>
+                      <div className="space-y-3">
+                        <div className="space-y-2"><Label>Project</Label>
+                          <Select value={form.project_id} onValueChange={(v) => setForm({ ...form, project_id: v, cost_code_id: "" })}>
+                            <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
+                            <SelectContent>{(projects ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2"><Label>Code</Label><Input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} /></div>
+                        <div className="space-y-2"><Label>Category</Label>
+                          <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>{CATS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2"><Label>Description</Label><Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+                        <div className="space-y-2"><Label>Budgeted Amount</Label><Input type="number" value={form.budgeted_amount} onChange={(e) => setForm({ ...form, budgeted_amount: Number(e.target.value) })} /></div>
+                      </div>
+                      <DialogFooter><Button onClick={save}>Create</Button></DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2"><Label>Code</Label><Input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} /></div>
-                  <div className="space-y-2"><Label>Category</Label>
-                    <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>{CATS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2"><Label>Description</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
-                <div className="space-y-2"><Label>Budgeted amount (₦)</Label><Input type="number" value={form.budgeted_amount} onChange={(e) => setForm({ ...form, budgeted_amount: Number(e.target.value) })} /></div>
-              </div>
-              <DialogFooter><Button onClick={save}>Save</Button></DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </>
+            )}
+          </div>
         }
       />
-      {(codes ?? []).length === 0 ? (
-        <EmptyState title="No cost codes yet" description="Create cost codes for a project to track budgets." />
-      ) : (
-        <div className="border rounded-lg bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Code</TableHead><TableHead>Project</TableHead><TableHead>Category</TableHead>
-                <TableHead>Budgeted</TableHead><TableHead>Committed</TableHead>
-                <TableHead>Actual</TableHead><TableHead>Remaining</TableHead><TableHead className="w-16"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(codes ?? []).map((c: any) => {
-                const { committed, actual, remaining } = computed(c.id, c.budgeted_amount);
-                return (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-medium">{c.code}</TableCell>
-                    <TableCell>{c.projects?.name ?? "—"}</TableCell>
-                    <TableCell>{c.category}</TableCell>
-                    <TableCell>{fmtNGN(c.budgeted_amount)}</TableCell>
-                    <TableCell>{fmtNGN(committed)}</TableCell>
-                    <TableCell>{fmtNGN(actual)}</TableCell>
-                    <TableCell className={remaining < 0 ? "text-destructive font-semibold" : ""}>{fmtNGN(remaining)}</TableCell>
-                    <TableCell><ConfirmDelete onConfirm={() => del.mutate(c.id)} /></TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+
+      <div className="border rounded-lg bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Code</TableHead><TableHead>Project</TableHead><TableHead>Category</TableHead>
+              <TableHead>Budgeted</TableHead><TableHead>Committed</TableHead><TableHead>Actual</TableHead><TableHead>Remaining</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {(codes ?? []).map((c: any) => {
+              const cmp = computed(c.id, Number(c.budgeted_amount ?? 0));
+              return (
+                <TableRow key={c.id}>
+                  <TableCell className="font-medium">{c.code}</TableCell>
+                  <TableCell>{c.projects?.name ?? "—"}</TableCell>
+                  <TableCell>{c.category}</TableCell>
+                  <TableCell>{fmtNGN(c.budgeted_amount ?? 0)}</TableCell>
+                  <TableCell>{fmtNGN(cmp.committed)}</TableCell>
+                  <TableCell>{fmtNGN(cmp.actual)}</TableCell>
+                  <TableCell>{fmtNGN(cmp.remaining)}</TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
