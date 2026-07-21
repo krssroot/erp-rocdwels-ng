@@ -99,10 +99,6 @@ function AuthPage() {
                 {loading ? "Signing in…" : "Sign in"}
               </Button>
             </form>
-
-            <div className="mt-6 text-center text-xs text-muted-foreground">
-              Users are created by Admin only through Lovable Cloud Users panel.
-            </div>
           </CardContent>
         </Card>
       </div>
