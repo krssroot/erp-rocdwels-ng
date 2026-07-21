@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
-import { ROLE_LABELS } from "@/lib/roles";
+import { ROLE_LABELS, type AppRole } from "@/lib/roles";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger,
@@ -27,22 +27,29 @@ export const Route = createFileRoute("/_authenticated")({
   component: AuthedLayout,
 });
 
-const NAV = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/projects", label: "Projects", icon: FolderKanban },
-  { to: "/cost-sheets", label: "Job Cost Sheets", icon: FileSpreadsheet },
-  { to: "/cost-codes", label: "Cost Codes", icon: Layers },
-  { to: "/requisitions", label: "Requisitions", icon: ClipboardList },
-  { to: "/suppliers", label: "Suppliers", icon: Truck },
-  { to: "/purchase-orders", label: "Purchase Orders", icon: ShoppingCart },
-  { to: "/documents", label: "Documents", icon: FileText },
-  { to: "/staff", label: "Staff", icon: Users },
-  { to: "/site-reports", label: "Site Reports", icon: ClipboardCheck },
-  { to: "/variations", label: "Variation Orders", icon: GitBranch },
-  { to: "/milestones", label: "Milestones", icon: Flag },
-  { to: "/contacts", label: "Contacts", icon: ContactIcon },
-  { to: "/recently-deleted", label: "Recently Deleted", icon: Trash2 },
-] as const;
+type NavItem = {
+  to: string;
+  label: string;
+  icon: any;
+  allowedRoles: AppRole[];
+};
+
+const NAV: NavItem[] = [
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, allowedRoles: ["admin", "project_manager", "site_manager", "accountant", "procurement_officer"] },
+  { to: "/projects", label: "Projects", icon: FolderKanban, allowedRoles: ["admin", "project_manager", "site_manager"] },
+  { to: "/cost-sheets", label: "Job Cost Sheets", icon: FileSpreadsheet, allowedRoles: ["admin", "project_manager", "accountant"] },
+  { to: "/cost-codes", label: "Cost Codes", icon: Layers, allowedRoles: ["admin", "accountant"] },
+  { to: "/requisitions", label: "Requisitions", icon: ClipboardList, allowedRoles: ["admin", "project_manager", "site_manager", "procurement_officer"] },
+  { to: "/suppliers", label: "Suppliers", icon: Truck, allowedRoles: ["admin", "accountant", "procurement_officer"] },
+  { to: "/purchase-orders", label: "Purchase Orders", icon: ShoppingCart, allowedRoles: ["admin", "procurement_officer"] },
+  { to: "/documents", label: "Documents", icon: FileText, allowedRoles: ["admin", "project_manager", "site_manager", "accountant"] },
+  { to: "/site-reports", label: "Daily Site Reports", icon: ClipboardCheck, allowedRoles: ["admin", "site_manager"] },
+  { to: "/milestones", label: "Milestones", icon: Flag, allowedRoles: ["admin", "project_manager"] },
+  { to: "/staff", label: "Staff", icon: Users, allowedRoles: ["admin"] },
+  { to: "/contacts", label: "Contacts", icon: ContactIcon, allowedRoles: ["admin", "project_manager"] },
+  { to: "/variations", label: "Variation Orders", icon: GitBranch, allowedRoles: ["admin", "project_manager"] },
+  { to: "/recently-deleted", label: "Recently Deleted", icon: Trash2, allowedRoles: ["admin"] },
+];
 
 function AuthedLayout() {
   const { user, roles, primaryRole } = useSession();
@@ -59,6 +66,11 @@ function AuthedLayout() {
   }
 
   const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
+
+  // Filter navigation items based on user roles
+  const visibleNav = NAV.filter((item) =>
+    item.allowedRoles.some((role) => roles.includes(role))
+  );
 
   return (
     <SidebarProvider>
@@ -78,7 +90,7 @@ function AuthedLayout() {
               <SidebarGroupLabel>Workspace</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {NAV.map((n) => (
+                  {visibleNav.map((n) => (
                     <SidebarMenuItem key={n.to}>
                       <SidebarMenuButton asChild isActive={pathname === n.to || pathname.startsWith(n.to + "/")}>
                         <Link to={n.to}>
