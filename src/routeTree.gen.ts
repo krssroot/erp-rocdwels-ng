@@ -12,11 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRequisitionsRouteImport } from './routes/_authenticated/requisitions'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCostCodesRouteImport } from './routes/_authenticated/cost-codes'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects/index'
 import { Route as AuthenticatedCostSheetsIndexRouteImport } from './routes/_authenticated/cost-sheets/index'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects/$id'
+import { Route as AuthenticatedCostSheetsIdRouteImport } from './routes/_authenticated/cost-sheets/$id'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -32,6 +34,12 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRequisitionsRoute =
+  AuthenticatedRequisitionsRouteImport.update({
+    id: '/requisitions',
+    path: '/requisitions',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -59,12 +67,20 @@ const AuthenticatedProjectsIdRoute = AuthenticatedProjectsIdRouteImport.update({
   path: '/projects/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCostSheetsIdRoute =
+  AuthenticatedCostSheetsIdRouteImport.update({
+    id: '/cost-sheets/$id',
+    path: '/cost-sheets/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/cost-codes': typeof AuthenticatedCostCodesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/requisitions': typeof AuthenticatedRequisitionsRoute
+  '/cost-sheets/$id': typeof AuthenticatedCostSheetsIdRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/cost-sheets/': typeof AuthenticatedCostSheetsIndexRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
@@ -74,6 +90,8 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/cost-codes': typeof AuthenticatedCostCodesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/requisitions': typeof AuthenticatedRequisitionsRoute
+  '/cost-sheets/$id': typeof AuthenticatedCostSheetsIdRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/cost-sheets': typeof AuthenticatedCostSheetsIndexRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
@@ -85,6 +103,8 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/cost-codes': typeof AuthenticatedCostCodesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/requisitions': typeof AuthenticatedRequisitionsRoute
+  '/_authenticated/cost-sheets/$id': typeof AuthenticatedCostSheetsIdRoute
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/_authenticated/cost-sheets/': typeof AuthenticatedCostSheetsIndexRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
@@ -96,6 +116,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/cost-codes'
     | '/dashboard'
+    | '/requisitions'
+    | '/cost-sheets/$id'
     | '/projects/$id'
     | '/cost-sheets/'
     | '/projects/'
@@ -105,6 +127,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/cost-codes'
     | '/dashboard'
+    | '/requisitions'
+    | '/cost-sheets/$id'
     | '/projects/$id'
     | '/cost-sheets'
     | '/projects'
@@ -115,6 +139,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/cost-codes'
     | '/_authenticated/dashboard'
+    | '/_authenticated/requisitions'
+    | '/_authenticated/cost-sheets/$id'
     | '/_authenticated/projects/$id'
     | '/_authenticated/cost-sheets/'
     | '/_authenticated/projects/'
@@ -148,6 +174,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/requisitions': {
+      id: '/_authenticated/requisitions'
+      path: '/requisitions'
+      fullPath: '/requisitions'
+      preLoaderRoute: typeof AuthenticatedRequisitionsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
@@ -184,12 +217,21 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/cost-sheets/$id': {
+      id: '/_authenticated/cost-sheets/$id'
+      path: '/cost-sheets/$id'
+      fullPath: '/cost-sheets/$id'
+      preLoaderRoute: typeof AuthenticatedCostSheetsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedCostCodesRoute: typeof AuthenticatedCostCodesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedRequisitionsRoute: typeof AuthenticatedRequisitionsRoute
+  AuthenticatedCostSheetsIdRoute: typeof AuthenticatedCostSheetsIdRoute
   AuthenticatedProjectsIdRoute: typeof AuthenticatedProjectsIdRoute
   AuthenticatedCostSheetsIndexRoute: typeof AuthenticatedCostSheetsIndexRoute
   AuthenticatedProjectsIndexRoute: typeof AuthenticatedProjectsIndexRoute
@@ -198,6 +240,8 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCostCodesRoute: AuthenticatedCostCodesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedRequisitionsRoute: AuthenticatedRequisitionsRoute,
+  AuthenticatedCostSheetsIdRoute: AuthenticatedCostSheetsIdRoute,
   AuthenticatedProjectsIdRoute: AuthenticatedProjectsIdRoute,
   AuthenticatedCostSheetsIndexRoute: AuthenticatedCostSheetsIndexRoute,
   AuthenticatedProjectsIndexRoute: AuthenticatedProjectsIndexRoute,

@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /projects
+Disallow: /cost-sheets
+Disallow: /cost-codes
+Disallow: /requisitions
+Disallow: /suppliers
+Disallow: /purchase-orders
+Disallow: /documents
+Disallow: /staff
+Disallow: /site-reports
+Disallow: /variations
+Disallow: /milestones
+Disallow: /contacts
+Disallow: /recently-deleted
