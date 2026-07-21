@@ -26,7 +26,7 @@ export interface Database {
           description: string | null;
           id: string;
           project_id: string;
-+         actual_amount: number | null;
+          actual_amount: number | null;
           updated_at: string;
         };
         Insert: {
@@ -39,7 +39,7 @@ export interface Database {
           description?: string | null;
           id?: string;
           project_id: string;
-+         actual_amount?: number | null;
+          actual_amount?: number | null;
           updated_at?: string;
         };
         Update: {
@@ -52,7 +52,7 @@ export interface Database {
           description?: string | null;
           id?: string;
           project_id?: string;
-+         actual_amount?: number | null;
+          actual_amount?: number | null;
           updated_at?: string;
         };
         Relationships: [
@@ -65,86 +65,86 @@ export interface Database {
           },
         ];
       };
-+      uom: {
-+        Row: {
-+          id: string;
-+          name: string;
-+          created_at: string;
-+        };
-+        Insert: {
-+          id?: string;
-+          name: string;
-+          created_at?: string;
-+        };
-+        Update: {
-+          id?: string;
-+          name?: string;
-+          created_at?: string;
-+        };
-+        Relationships: [];
-+      };
-+      products: {
-+        Row: {
-+          id: string;
-+          name: string;
-+          description: string | null;
-+          standard_price: number | null;
-+          uom_id: string | null;
-+          created_at: string;
-+          updated_at: string;
-+          deleted_at: string | null;
-+        };
-+        Insert: {
-+          id?: string;
-+          name: string;
-+          description?: string | null;
-+          standard_price?: number | null;
-+          uom_id?: string | null;
-+          created_at?: string;
-+          updated_at?: string;
-+          deleted_at?: string | null;
-+        };
-+        Update: {
-+          id?: string;
-+          name?: string;
-+          description?: string | null;
-+          standard_price?: number | null;
-+          uom_id?: string | null;
-+          created_at?: string;
-+          updated_at?: string;
-+          deleted_at?: string | null;
-+        };
-+        Relationships: [
-+          {
-+            foreignKeyName: "products_uom_id_fkey";
-+            columns: ["uom_id"];
-+            isOneToOne: false;
-+            referencedRelation: "uom";
-+            referencedColumns: ["id"];
-+          }
-+        ];
-+      };
-+      standard_rates: {
-+        Row: {
-+          id: string;
-+          job_type: string;
-+          rate_per_hour: number | null;
-+          created_at: string;
-+        };
-+        Insert: {
-+          id?: string;
-+          job_type: string;
-+          rate_per_hour?: number | null;
-+          created_at?: string;
-+        };
-+        Update: {
-+          id?: string;
-+          job_type?: string;
-+          rate_per_hour?: number | null;
-+          created_at?: string;
-+        };
-+        Relationships: [];
-+      };
+      uom: {
+        Row: {
+          id: string;
+          name: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      products: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          standard_price: number | null;
+          uom_id: string | null;
+          created_at: string;
+          updated_at: string;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string | null;
+          standard_price?: number | null;
+          uom_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          deleted_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          description?: string | null;
+          standard_price?: number | null;
+          uom_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          deleted_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "products_uom_id_fkey";
+            columns: ["uom_id"];
+            isOneToOne: false;
+            referencedRelation: "uom";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      standard_rates: {
+        Row: {
+          id: string;
+          job_type: string;
+          rate_per_hour: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_type: string;
+          rate_per_hour?: number | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          job_type?: string;
+          rate_per_hour?: number | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
   };
 }
