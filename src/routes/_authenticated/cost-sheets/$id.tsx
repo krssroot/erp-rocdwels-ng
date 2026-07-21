@@ -73,6 +73,31 @@ function CostSheetDetail() {
   const lab = useLines("cost_sheet_labour", id);
   const ovh = useLines("cost_sheet_overhead", id);
 
+  const { data: costCode } = useQuery({
+    queryKey: ["cost_code", sheet?.cost_code_id],
+    queryFn: async () => {
+      if (!sheet?.cost_code_id) return null;
+      const { data } = await supabase.from("cost_codes").select("*").eq("id", sheet.cost_code_id).maybeSingle();
+      return data;
+    },
+    enabled: !!sheet?.cost_code_id,
+  });
+
+  const { data: requisitions } = useQuery({
+    queryKey: ["requisitions", sheet?.cost_code_id],
+    queryFn: async () => {
+      if (!sheet?.cost_code_id) return [];
+      const { data } = await supabase.from("requisitions").select("total_amount,status").eq("cost_code_id", sheet.cost_code_id).is("deleted_at", null);
+      return data ?? [];
+    },
+    enabled: !!sheet?.cost_code_id,
+  });
+
+  const committed = (requisitions ?? []).filter((r: any) => ["Pending Approval", "Approved"].includes(r.status)).reduce((a: number, r: any) => a + Number(r.total_amount ?? 0), 0);
+  const actualFromCostCode = Number(costCode?.actual_amount ?? 0);
+  const budgeted = Number(costCode?.budgeted_amount ?? 0);
+  const remainingBudget = budgeted - committed - actualFromCostCode;
+
   async function updateStatus(v: string) {
     if (!sheet) return toast.error("Sheet not loaded");
     const from = sheet.status;
@@ -127,6 +152,9 @@ function CostSheetDetail() {
   const variance = plannedTotal - actualTotal;
   const pctUsed = plannedTotal > 0 ? Math.min(100, (actualTotal / plannedTotal) * 100) : 0;
 
+  const budgetUtilPct = budgeted > 0 ? Math.min(999, ((actualFromCostCode || actualTotal) / budgeted) * 100) : 0;
+  const budgetUtilColor = budgetUtilPct < 80 ? "text-green-600" : budgetUtilPct <= 100 ? "text-yellow-600" : "text-red-600";
+
   if (!sheet) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
   return (
@@ -136,7 +164,14 @@ function CostSheetDetail() {
       </Link>
       <PageHeader
         title={`${sheet.number} — ${sheet.title ?? "Cost Sheet"}`}
-        description={sheet.projects?.name}
+        description={
+          <div className="flex flex-col">
+            <span>{sheet.projects?.name}</span>
+            {sheet.cost_code_id && (
+              <div className="text-sm text-muted-foreground">Remaining Budget: <span className="font-semibold">{fmtNGN(remainingBudget)}</span></div>
+            )}
+          </div>
+        }
         action={
           <div className="flex items-center gap-2">
             <Badge variant="secondary">{sheet.status}</Badge>
@@ -152,8 +187,16 @@ function CostSheetDetail() {
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Total Planned</p><p className="font-bold">{fmtNGN(plannedTotal)}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Total Actual</p><p className="font-bold">{fmtNGN(actualTotal)}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Variance</p><p className={"font-bold " + (variance < 0 ? "text-destructive" : "")}>{fmtNGN(variance)}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">% Used</p><Progress value={pctUsed} className="mt-2" /><p className="text-xs mt-1">{pctUsed.toFixed(0)}%</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">% Used</p><Progress value={pctUsed} className="mt-2" /><p className="text-xs mt-1">{pctUsed.toFixed(0)}%</p>
+        {sheet.cost_code_id && (
+          <p className={`text-sm mt-2 ${budgetUtilColor}`}>Budget Utilization: {budgetUtilPct.toFixed(0)}%</p>
+        )}
+        </CardContent></Card>
       </div>
+
+      {sheet.cost_code_id && plannedTotal > remainingBudget && (
+        <div className="mb-4 p-3 rounded border border-destructive/50 bg-destructive/10 text-destructive">Over budget by {fmtNGN(plannedTotal - remainingBudget)}</div>
+      )}
 
       <Tabs defaultValue="materials">
         <TabsList>
