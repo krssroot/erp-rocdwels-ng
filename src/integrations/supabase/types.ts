@@ -66,9 +66,11 @@ export type Database = {
       }
       cost_codes: {
         Row: {
+          actual_amount: number | null
           budgeted_amount: number | null
           category: string
           code: string
+          committed_amount: number | null
           created_at: string
           deleted_at: string | null
           deleted_by: string | null
@@ -78,9 +80,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          actual_amount?: number | null
           budgeted_amount?: number | null
           category?: string
           code: string
+          committed_amount?: number | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
@@ -90,9 +94,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          actual_amount?: number | null
           budgeted_amount?: number | null
           category?: string
           code?: string
+          committed_amount?: number | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
@@ -290,43 +296,64 @@ export type Database = {
       }
       cost_sheets: {
         Row: {
+          analytic_account: string | null
           cost_code_id: string | null
           created_at: string
           created_by: string | null
+          currency: string | null
+          customer: string | null
           deleted_at: string | null
           deleted_by: string | null
+          description: string | null
           id: string
+          job_order: string | null
           notes: string | null
           number: string
           project_id: string
+          sale_reference: string | null
+          sheet_date: string | null
           status: string
           title: string | null
           updated_at: string
         }
         Insert: {
+          analytic_account?: string | null
           cost_code_id?: string | null
           created_at?: string
           created_by?: string | null
+          currency?: string | null
+          customer?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          description?: string | null
           id?: string
+          job_order?: string | null
           notes?: string | null
           number?: string
           project_id: string
+          sale_reference?: string | null
+          sheet_date?: string | null
           status?: string
           title?: string | null
           updated_at?: string
         }
         Update: {
+          analytic_account?: string | null
           cost_code_id?: string | null
           created_at?: string
           created_by?: string | null
+          currency?: string | null
+          customer?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          description?: string | null
           id?: string
+          job_order?: string | null
           notes?: string | null
           number?: string
           project_id?: string
+          sale_reference?: string | null
+          sheet_date?: string | null
           status?: string
           title?: string | null
           updated_at?: string
@@ -480,6 +507,47 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      products: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          id: string
+          name: string
+          standard_price: number | null
+          uom_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          standard_price?: number | null
+          uom_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          standard_price?: number | null
+          uom_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_uom_id_fkey"
+            columns: ["uom_id"]
+            isOneToOne: false
+            referencedRelation: "uom"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -911,6 +979,27 @@ export type Database = {
           },
         ]
       }
+      standard_rates: {
+        Row: {
+          created_at: string
+          id: string
+          job_type: string
+          rate_per_hour: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_type: string
+          rate_per_hour?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_type?: string
+          rate_per_hour?: number | null
+        }
+        Relationships: []
+      }
       suppliers: {
         Row: {
           bank_details: string | null
@@ -962,6 +1051,24 @@ export type Database = {
           rating?: number | null
           tax_id?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      uom: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
         }
         Relationships: []
       }
