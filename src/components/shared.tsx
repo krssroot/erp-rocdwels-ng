@@ -26,7 +26,7 @@ export function ConfirmDelete({ onConfirm, label = "Delete" }: { onConfirm: () =
   );
 }
 
-export function PageHeader({ title, description, action }: { title: string; description?: string; action?: React.ReactNode }) {
+export function PageHeader({ title, description, action }: { title: string; description?: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
       <div>
