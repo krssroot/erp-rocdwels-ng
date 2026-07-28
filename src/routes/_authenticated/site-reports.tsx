@@ -12,8 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus } from "lucide-react";
+import { Plus, FileDown } from "lucide-react";
 import { toast } from "sonner";
+import { exportSiteReportPdf } from "@/lib/pdf-exports";
 
 export const Route = createFileRoute("/_authenticated/site-reports")({ ssr: false, component: SR });
 
@@ -85,7 +86,12 @@ function SR() {
                       <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell><ConfirmDelete onConfirm={() => del.mutate(r.id)} /></TableCell>
+                  <TableCell className="flex gap-1">
+                    <Button size="icon" variant="ghost" title="Export PDF" onClick={() => exportSiteReportPdf({ report: r, projectName: r.projects?.name })}>
+                      <FileDown className="h-4 w-4" />
+                    </Button>
+                    <ConfirmDelete onConfirm={() => del.mutate(r.id)} />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

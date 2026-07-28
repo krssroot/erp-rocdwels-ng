@@ -10,10 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus } from "lucide-react";
+import { Plus, FileDown } from "lucide-react";
 import { fmtNGN } from "@/lib/roles";
 import { toast } from "sonner";
 import { useSession } from "@/hooks/use-session";
+import { exportBudgetPdf } from "@/lib/pdf-exports";
 
 
 export const Route = createFileRoute("/_authenticated/cost-codes")({
@@ -174,6 +175,7 @@ function CostCodesPage() {
             <TableRow>
               <TableHead>Code</TableHead><TableHead>Project</TableHead><TableHead>Category</TableHead>
               <TableHead>Budgeted</TableHead><TableHead>Committed</TableHead><TableHead>Actual</TableHead><TableHead>Remaining</TableHead>
+              <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -188,6 +190,18 @@ function CostCodesPage() {
                   <TableCell>{fmtNGN(cmp.committed)}</TableCell>
                   <TableCell>{fmtNGN(cmp.actual)}</TableCell>
                   <TableCell>{fmtNGN(cmp.remaining)}</TableCell>
+                  <TableCell>
+                    <Button size="icon" variant="ghost" title="Export project budget PDF" onClick={async () => {
+                      const { data: proj } = await supabase.from("projects").select("*").eq("id", c.project_id).single();
+                      const projCodes = (codes ?? []).filter((x: any) => x.project_id === c.project_id).map((x: any) => {
+                        const k = computed(x.id, Number(x.budgeted_amount ?? 0));
+                        return { ...x, committed_amount: k.committed, actual_amount: k.actual };
+                      });
+                      if (proj) exportBudgetPdf({ project: proj, costCodes: projCodes });
+                    }}>
+                      <FileDown className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               );
             })}
