@@ -92,6 +92,7 @@ function SR() {
                     </Button>
                     <ConfirmDelete onConfirm={() => del.mutate(r.id)} />
                   </TableCell>
+                </TableRow>
               ))}
             </TableBody>
           </Table>
