@@ -200,6 +200,16 @@ function CostSheetDetail() {
               <QuickLink label="Reqs" value={counts?.req ?? 0} />
               <QuickLink label="Budget Lines" value={budgetLines.length} />
             </div>
+            <Button variant="outline" size="sm" onClick={() => exportCostSheetPdf({
+              sheet: { ...sheet, ...hdr },
+              projectName: sheet.projects?.name,
+              materials: mat.rows, labour: lab.rows, overhead: ovh.rows,
+              budgetLines,
+              totals: { matPlan, matAct, labPlan, labAct, ovhPlan, ovhAct, grandPlan, grandAct, utilPct },
+              generatedBy: user?.email ?? undefined,
+            })}>
+              <FileDown className="h-4 w-4 mr-1" /> Export PDF
+            </Button>
             <Badge variant="secondary">{sheet.status}</Badge>
             <Select value={sheet.status} onValueChange={updateStatus}>
               <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
