@@ -12,10 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, FileDown } from "lucide-react";
 import { fmtNGN } from "@/lib/roles";
 import { toast } from "sonner";
 import { useSession } from "@/hooks/use-session";
+import { exportCostSheetPdf } from "@/lib/pdf-exports";
 
 export const Route = createFileRoute("/_authenticated/cost-sheets/$id")({
   ssr: false,
