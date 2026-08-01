@@ -83,7 +83,7 @@ function CostSheetsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(data ?? []).map((s) => (
+              {rows.map((s: any) => (
                 <TableRow key={s.id}>
                   <TableCell>
                     <Link to="/cost-sheets/$id" params={{ id: s.id }} className="font-medium hover:text-primary">
