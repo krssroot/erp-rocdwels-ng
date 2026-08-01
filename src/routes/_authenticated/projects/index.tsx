@@ -18,6 +18,9 @@ import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/projects/")({
   ssr: false,
+  validateSearch: (search: Record<string, unknown>) => ({
+    status: typeof search.status === "string" ? search.status : undefined,
+  }),
   component: ProjectsPage,
 });
 
@@ -27,6 +30,8 @@ function ProjectsPage() {
   const { data, isLoading } = useList<any>("projects", { order: "created_at" });
   const del = useSoftDelete("projects");
   const [open, setOpen] = useState(false);
+  const { status } = Route.useSearch();
+  const rows = (data ?? []).filter((p: any) => !status || p.status === status);
 
   return (
     <div>
@@ -42,9 +47,16 @@ function ProjectsPage() {
           </Dialog>
         }
       />
+      {status && (
+        <div className="mb-3 flex items-center gap-2 text-sm">
+          <Badge>Status: {status}</Badge>
+          <Link to="/projects" search={{}} className="text-muted-foreground hover:text-primary">Clear filter</Link>
+        </div>
+      )}
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
-      ) : (data ?? []).length === 0 ? (
+      ) : rows.length === 0 ? (
+
         <EmptyState
           title="No projects yet"
           description="Create your first construction project to get started."
