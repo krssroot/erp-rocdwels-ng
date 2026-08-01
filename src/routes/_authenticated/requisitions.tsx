@@ -143,6 +143,7 @@ function RequisitionsPage() {
 
 function RequisitionDialog({ initial, onClose }: { initial: any | null; onClose: () => void }) {
   const qc = useQueryClient();
+  const { user: dialogUser } = useSession();
   const [form, setForm] = useState<any>(initial ?? {
     project_id: "", cost_code_id: "", type: "Materials", department: "",
     deadline: "", is_change_order: false, status: "Draft", notes: "",
