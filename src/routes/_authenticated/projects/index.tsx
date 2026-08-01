@@ -77,7 +77,7 @@ function ProjectsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(data ?? []).map((p) => (
+              {rows.map((p: any) => (
                 <TableRow key={p.id}>
                   <TableCell>
                     <Link to="/projects/$id" params={{ id: p.id }} className="font-medium hover:text-primary">
