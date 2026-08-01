@@ -104,7 +104,7 @@ function ProjectDetail() {
         </TabsContent>
         <TabsContent value="documents"><p className="text-sm text-muted-foreground p-4">Documents module opens on the main sidebar.</p></TabsContent>
         <TabsContent value="team"><p className="text-sm text-muted-foreground p-4">Assign staff from the Staff module.</p></TabsContent>
-        <TabsContent value="activity"><p className="text-sm text-muted-foreground p-4">Activity log will accumulate as records are created and updated.</p></TabsContent>
+        <TabsContent value="activity"><ProjectActivity projectId={id} projectName={project.name} /></TabsContent>
       </Tabs>
     </div>
   );
