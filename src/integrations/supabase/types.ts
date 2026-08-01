@@ -1187,6 +1187,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_manage_catalog: { Args: { _uid: string }; Returns: boolean }
+      can_manage_costing: { Args: { _uid: string }; Returns: boolean }
+      can_manage_procurement: { Args: { _uid: string }; Returns: boolean }
+      can_manage_requisitions: { Args: { _uid: string }; Returns: boolean }
+      can_manage_site: { Args: { _uid: string }; Returns: boolean }
       get_user_roles: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"][]
