@@ -1198,6 +1198,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_privileged: { Args: { _user_id: string }; Returns: boolean }
+      is_project_member: {
+        Args: { _project_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role:
