@@ -123,3 +123,65 @@ function SimpleList({ items, render, emptyLink, emptyLabel }: { items: any[]; re
     </div>
   );
 }
+
+function ProjectActivity({ projectId, projectName }: { projectId: string; projectName: string }) {
+  const [limit, setLimit] = useState("25");
+  const { user } = useSession();
+
+  const { data: logs = [], isLoading } = useQuery({
+    queryKey: ["project_activity", projectId, limit],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("activity_logs")
+        .select("*")
+        .or(`entity_id.eq.${projectId},metadata->>project_id.eq.${projectId}`)
+        .order("created_at", { ascending: false })
+        .limit(Number(limit));
+      return data ?? [];
+    },
+  });
+
+  return (
+    <div className="border rounded-lg bg-card">
+      <div className="p-3 flex flex-wrap items-center gap-2 border-b">
+        <span className="text-sm font-medium mr-auto">Activity Log</span>
+        <Select value={limit} onValueChange={setLimit}>
+          <SelectTrigger className="h-9 w-32"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {["10", "25", "50", "100", "250"].map((n) => <SelectItem key={n} value={n}>Last {n}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Button
+          variant="outline"
+          className="h-9"
+          onClick={() => exportActivityLogPdf({
+            rows: logs,
+            scopeLabel: `Project — ${projectName}`,
+            generatedBy: user?.email ?? undefined,
+          })}
+        >
+          <FileDown className="h-4 w-4 mr-2" /> Export Activity Log
+        </Button>
+      </div>
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground p-4">Loading…</p>
+      ) : logs.length === 0 ? (
+        <p className="text-sm text-muted-foreground p-4">No activity recorded for this project yet.</p>
+      ) : (
+        <div className="divide-y">
+          {logs.map((a: any) => (
+            <div key={a.id} className="p-3 flex items-center justify-between gap-3 text-sm">
+              <div className="min-w-0">
+                <span className="font-medium">{a.actor_email ?? "System"}</span>{" "}
+                <span className="text-muted-foreground">{a.action}</span>{" "}
+                {a.entity_label && <span>· {a.entity_label}</span>}
+                {a.entity_type && <span className="text-muted-foreground"> ({a.entity_type})</span>}
+              </div>
+              <span className="text-xs text-muted-foreground shrink-0">{new Date(a.created_at).toLocaleString("en-NG")}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
