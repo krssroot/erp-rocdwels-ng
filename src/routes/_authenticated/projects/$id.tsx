@@ -8,9 +8,12 @@ import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/shared";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ProjectDialog } from "./index";
 import { fmtNGN } from "@/lib/roles";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { useSession } from "@/hooks/use-session";
+import { exportActivityLogPdf } from "@/lib/pdf-exports";
+import { ArrowLeft, Pencil, FileDown } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({
