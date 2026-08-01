@@ -91,19 +91,26 @@ function RequisitionsPage() {
           </Button>
         }
       />
-      {(reqs ?? []).length === 0 ? (
-        <EmptyState title="No requisitions yet" description="Raise a new requisition for materials, labour, equipment or services." />
+      {filtered && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+          {status && <Badge>Status: {status}</Badge>}
+          {(from || to) && <Badge variant="secondary">{from ?? "…"} → {to ?? "…"}</Badge>}
+          <Link to="/requisitions" search={{}} className="text-muted-foreground hover:text-primary">Clear filters</Link>
+        </div>
+      )}
+      {rows.length === 0 ? (
+        <EmptyState title={filtered ? "No requisitions match this filter" : "No requisitions yet"} description={filtered ? "Try clearing the filter." : "Raise a new requisition for materials, labour, equipment or services."} />
       ) : (
         <div className="border rounded-lg bg-card">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Number</TableHead><TableHead>Project</TableHead><TableHead>Type</TableHead>
-                <TableHead>Total</TableHead><TableHead>Status</TableHead><TableHead className="w-40"></TableHead>
+                <TableHead>Total</TableHead><TableHead>Status</TableHead><TableHead className="w-48"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(reqs ?? []).map((r: any) => (
+              {rows.map((r: any) => (
                 <TableRow key={r.id}>
                   <TableCell><button className="font-medium hover:text-primary" onClick={() => { setEditing(r); setOpen(true); }}>{r.number}</button></TableCell>
                   <TableCell>{r.projects?.name ?? "—"}</TableCell>
@@ -115,8 +122,14 @@ function RequisitionsPage() {
                       <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
                       <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                     </Select>
+                    <Button size="icon" variant="ghost" title="Export PDF" onClick={() => downloadRequisitionPdf(r, user?.email ?? undefined)}>
+                      <FileDown className="h-4 w-4" />
+                    </Button>
                     <ConfirmDelete onConfirm={() => del.mutate(r.id)} />
                   </TableCell>
+                </TableRow>
+              ))}
+
                 </TableRow>
               ))}
             </TableBody>
