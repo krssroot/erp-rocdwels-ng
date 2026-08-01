@@ -1,11 +1,17 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fmtNGN, ROLE_LABELS } from "@/lib/roles";
 import { useSession } from "@/hooks/use-session";
-import { FolderKanban, FileSpreadsheet, ClipboardList, CheckCircle2 } from "lucide-react";
+import { exportActivityLogPdf } from "@/lib/pdf-exports";
+import { FolderKanban, FileSpreadsheet, ClipboardList, CheckCircle2, FileDown } from "lucide-react";
 import {
   Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -26,17 +32,43 @@ const STATUS_COLORS: Record<string, string> = {
 
 function num(v: any) { return Number(v ?? 0); }
 function monthKey(d: Date) { return d.toLocaleString("en-US", { month: "short", year: "2-digit" }); }
+function iso(d: Date) { return d.toISOString().slice(0, 10); }
+function monthsAgo(n: number) { const d = new Date(); d.setMonth(d.getMonth() - n); d.setDate(1); return d; }
 
 function AdminDashboard() {
   const { user, primaryRole } = useSession();
+  const navigate = useNavigate();
+
+  const [from, setFrom] = useState(() => iso(monthsAgo(5)));
+  const [to, setTo] = useState(() => iso(new Date()));
+  const [logLimit, setLogLimit] = useState("25");
+
+  const fromTs = useMemo(() => new Date(from + "T00:00:00").getTime(), [from]);
+  const toTs = useMemo(() => new Date(to + "T23:59:59").getTime(), [to]);
+  const inRange = (v?: string | null) => {
+    if (!v) return false;
+    const t = new Date(v).getTime();
+    return t >= fromTs && t <= toTs;
+  };
+  const rangeLabel = `${from} → ${to}`;
+
+  function applyPreset(p: string) {
+    const now = new Date();
+    if (p === "30d") { const d = new Date(); d.setDate(d.getDate() - 30); setFrom(iso(d)); }
+    else if (p === "3m") setFrom(iso(monthsAgo(2)));
+    else if (p === "6m") setFrom(iso(monthsAgo(5)));
+    else if (p === "12m") setFrom(iso(monthsAgo(11)));
+    else if (p === "ytd") setFrom(iso(new Date(now.getFullYear(), 0, 1)));
+    setTo(iso(now));
+  }
 
   const { data: projects = [] } = useQuery({
     queryKey: ["dash_projects"],
     queryFn: async () => (await supabase.from("projects").select("*").is("deleted_at", null)).data ?? [],
   });
-  const { data: sheets = [] } = useQuery({
+  const { data: allSheets = [] } = useQuery({
     queryKey: ["dash_sheets"],
-    queryFn: async () => (await supabase.from("cost_sheets").select("id,project_id,status,created_at,sheet_date").is("deleted_at", null)).data ?? [],
+    queryFn: async () => (await supabase.from("cost_sheets").select("id,project_id,status,created_at,sheet_date,number,title").is("deleted_at", null)).data ?? [],
   });
   const { data: matLines = [] } = useQuery({
     queryKey: ["dash_mat"],
@@ -50,13 +82,13 @@ function AdminDashboard() {
     queryKey: ["dash_ovh"],
     queryFn: async () => (await supabase.from("cost_sheet_overhead").select("cost_sheet_id,actual_amount,line_date,created_at").is("deleted_at", null)).data ?? [],
   });
-  const { data: reqs = [] } = useQuery({
+  const { data: allReqs = [] } = useQuery({
     queryKey: ["dash_reqs"],
     queryFn: async () => (await supabase.from("requisitions").select("id,number,project_id,status,total_amount,created_at").is("deleted_at", null)).data ?? [],
   });
-  const { data: pos = [] } = useQuery({
+  const { data: allPos = [] } = useQuery({
     queryKey: ["dash_pos"],
-    queryFn: async () => (await supabase.from("purchase_orders").select("id,supplier_id,total_amount,status").is("deleted_at", null)).data ?? [],
+    queryFn: async () => (await supabase.from("purchase_orders").select("id,supplier_id,total_amount,status,created_at").is("deleted_at", null)).data ?? [],
   });
   const { data: suppliers = [] } = useQuery({
     queryKey: ["dash_suppliers"],
@@ -67,27 +99,45 @@ function AdminDashboard() {
     queryFn: async () => (await supabase.from("cost_codes").select("project_id,budgeted_amount").is("deleted_at", null)).data ?? [],
   });
   const { data: activity = [] } = useQuery({
-    queryKey: ["dash_activity"],
-    queryFn: async () => (await supabase.from("activity_logs").select("*").order("created_at", { ascending: false }).limit(10)).data ?? [],
+    queryKey: ["dash_activity", from, to, logLimit],
+    queryFn: async () => (await supabase
+      .from("activity_logs").select("*")
+      .gte("created_at", new Date(fromTs).toISOString())
+      .lte("created_at", new Date(toTs).toISOString())
+      .order("created_at", { ascending: false })
+      .limit(Number(logLimit))).data ?? [],
   });
+
+  // Range filtering
+  const sheets = allSheets.filter((s: any) => inRange(s.sheet_date ?? s.created_at));
+  const sheetIds = new Set(sheets.map((s: any) => s.id));
+  const reqs = allReqs.filter((r: any) => inRange(r.created_at));
+  const pos = allPos.filter((p: any) => inRange(p.created_at));
+  const mats = matLines.filter((l: any) => sheetIds.has(l.cost_sheet_id));
+  const labs = labLines.filter((l: any) => sheetIds.has(l.cost_sheet_id));
+  const ovhs = ovhLines.filter((l: any) => sheetIds.has(l.cost_sheet_id));
 
   // Summary
   const totalContract = projects.reduce((a: number, p: any) => a + num(p.contract_value), 0);
   const totalSpent =
-    matLines.reduce((a: number, l: any) => a + num(l.actual_purchased_cost), 0) +
-    labLines.reduce((a: number, l: any) => a + num(l.actual_cost), 0) +
-    ovhLines.reduce((a: number, l: any) => a + num(l.actual_amount), 0);
+    mats.reduce((a: number, l: any) => a + num(l.actual_purchased_cost), 0) +
+    labs.reduce((a: number, l: any) => a + num(l.actual_cost), 0) +
+    ovhs.reduce((a: number, l: any) => a + num(l.actual_amount), 0);
   const activeProjects = projects.filter((p: any) => p.status === "Active").length;
-  const pendingApprovals =
-    sheets.filter((s: any) => ["Draft", "Confirmed", "Budget Validated"].includes(s.status)).length +
-    reqs.filter((r: any) => r.status === "Pending Approval").length;
+  const pendingSheetsAll = sheets.filter((s: any) => ["Draft", "Confirmed", "Budget Validated"].includes(s.status));
+  const pendingReqsAll = reqs.filter((r: any) => r.status === "Pending Approval");
+  const pendingApprovals = pendingSheetsAll.length + pendingReqsAll.length;
 
-  // Monthly expenditure (last 6 months)
+  // Monthly expenditure across the selected range (max 12 buckets)
   const months: { key: string; date: Date }[] = [];
-  const now = new Date();
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push({ key: monthKey(d), date: d });
+  {
+    const start = new Date(new Date(fromTs).getFullYear(), new Date(fromTs).getMonth(), 1);
+    const end = new Date(new Date(toTs).getFullYear(), new Date(toTs).getMonth(), 1);
+    const cur = new Date(start);
+    while (cur <= end && months.length < 24) {
+      months.push({ key: monthKey(new Date(cur)), date: new Date(cur) });
+      cur.setMonth(cur.getMonth() + 1);
+    }
   }
   const bySheetMonth = new Map<string, string>();
   sheets.forEach((s: any) => {
@@ -99,10 +149,15 @@ function AdminDashboard() {
     const k = bySheetMonth.get(sheetId);
     if (k && k in monthlyMap) monthlyMap[k] += amount;
   };
-  matLines.forEach((l: any) => addLine(l.cost_sheet_id, num(l.actual_purchased_cost)));
-  labLines.forEach((l: any) => addLine(l.cost_sheet_id, num(l.actual_cost)));
-  ovhLines.forEach((l: any) => addLine(l.cost_sheet_id, num(l.actual_amount)));
-  const monthlyData = months.map((m) => ({ month: m.key, spend: Math.round(monthlyMap[m.key]) }));
+  mats.forEach((l: any) => addLine(l.cost_sheet_id, num(l.actual_purchased_cost)));
+  labs.forEach((l: any) => addLine(l.cost_sheet_id, num(l.actual_cost)));
+  ovhs.forEach((l: any) => addLine(l.cost_sheet_id, num(l.actual_amount)));
+  const monthlyData = months.map((m) => ({
+    month: m.key,
+    spend: Math.round(monthlyMap[m.key]),
+    from: iso(m.date),
+    to: iso(new Date(m.date.getFullYear(), m.date.getMonth() + 1, 0)),
+  }));
 
   // Budget vs actual per project
   const budgetByProject = new Map<string, number>();
@@ -114,11 +169,12 @@ function AdminDashboard() {
     const p = sheetToProject.get(sheetId); if (!p) return;
     actualByProject.set(p, (actualByProject.get(p) ?? 0) + amount);
   };
-  matLines.forEach((l: any) => addProjLine(l.cost_sheet_id, num(l.actual_purchased_cost)));
-  labLines.forEach((l: any) => addProjLine(l.cost_sheet_id, num(l.actual_cost)));
-  ovhLines.forEach((l: any) => addProjLine(l.cost_sheet_id, num(l.actual_amount)));
+  mats.forEach((l: any) => addProjLine(l.cost_sheet_id, num(l.actual_purchased_cost)));
+  labs.forEach((l: any) => addProjLine(l.cost_sheet_id, num(l.actual_cost)));
+  ovhs.forEach((l: any) => addProjLine(l.cost_sheet_id, num(l.actual_amount)));
 
   const bvaData = projects.map((p: any) => ({
+    id: p.id,
     name: p.name?.slice(0, 20) ?? "—",
     budget: Math.round(budgetByProject.get(p.id) ?? num(p.contract_value)),
     actual: Math.round(actualByProject.get(p.id) ?? 0),
@@ -148,9 +204,8 @@ function AdminDashboard() {
     .map(([id, spend]) => ({ id, name: supplierName.get(id) ?? "Unknown", spend }))
     .sort((a, b) => b.spend - a.spend).slice(0, 5);
 
-  // Pending queues
-  const pendingSheets = sheets.filter((s: any) => ["Draft", "Confirmed", "Budget Validated"].includes(s.status)).slice(0, 5);
-  const pendingReqs = reqs.filter((r: any) => r.status === "Pending Approval").slice(0, 5);
+  const pendingSheets = pendingSheetsAll.slice(0, 5);
+  const pendingReqs = pendingReqsAll.slice(0, 5);
   const projectName = (id?: string) => projects.find((p: any) => p.id === id)?.name ?? "—";
 
   return (
@@ -160,26 +215,82 @@ function AdminDashboard() {
         description={primaryRole ? `Role: ${ROLE_LABELS[primaryRole]}` : "Real-time overview across all modules"}
       />
 
+      <Card>
+        <CardContent className="pt-6 flex flex-wrap items-end gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs">From</Label>
+            <Input type="date" className="h-9 w-40" value={from} onChange={(e) => setFrom(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">To</Label>
+            <Input type="date" className="h-9 w-40" value={to} onChange={(e) => setTo(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Quick range</Label>
+            <Select onValueChange={applyPreset}>
+              <SelectTrigger className="h-9 w-40"><SelectValue placeholder="Preset" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="30d">Last 30 days</SelectItem>
+                <SelectItem value="3m">Last 3 months</SelectItem>
+                <SelectItem value="6m">Last 6 months</SelectItem>
+                <SelectItem value="12m">Last 12 months</SelectItem>
+                <SelectItem value="ytd">Year to date</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="ml-auto flex items-end gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Activity entries</Label>
+              <Select value={logLimit} onValueChange={setLogLimit}>
+                <SelectTrigger className="h-9 w-28"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["10", "25", "50", "100", "250"].map((n) => <SelectItem key={n} value={n}>Last {n}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              variant="outline"
+              className="h-9"
+              onClick={() => exportActivityLogPdf({
+                rows: activity,
+                scopeLabel: "All modules — Admin",
+                rangeLabel,
+                generatedBy: user?.email ?? undefined,
+              })}
+            >
+              <FileDown className="h-4 w-4 mr-2" /> Export Activity Log
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Stat icon={FolderKanban} label="Total Contract Value" value={fmtNGN(totalContract)} />
-        <Stat icon={FileSpreadsheet} label="Total Amount Spent" value={fmtNGN(totalSpent)} />
-        <Stat icon={CheckCircle2} label="Active Projects" value={String(activeProjects)} />
-        <Stat icon={ClipboardList} label="Pending Approvals" value={String(pendingApprovals)} />
+        <Stat icon={FolderKanban} label="Total Contract Value" value={fmtNGN(totalContract)} onClick={() => navigate({ to: "/projects" })} />
+        <Stat icon={FileSpreadsheet} label="Total Amount Spent" value={fmtNGN(totalSpent)} onClick={() => navigate({ to: "/cost-sheets", search: { from, to } })} />
+        <Stat icon={CheckCircle2} label="Active Projects" value={String(activeProjects)} onClick={() => navigate({ to: "/projects", search: { status: "Active" } })} />
+        <Stat icon={ClipboardList} label="Pending Approvals" value={String(pendingApprovals)} onClick={() => navigate({ to: "/requisitions", search: { status: "Pending Approval" } })} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader><CardTitle>Monthly Expenditure — Last 6 months</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Monthly Expenditure — {rangeLabel}</CardTitle></CardHeader>
           <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData}>
+              <BarChart
+                data={monthlyData}
+                onClick={(e: any) => {
+                  const p = e?.activePayload?.[0]?.payload;
+                  if (p) navigate({ to: "/cost-sheets", search: { from: p.from, to: p.to } });
+                }}
+              >
                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                 <XAxis dataKey="month" />
                 <YAxis tickFormatter={(v) => `₦${(v / 1_000_000).toFixed(1)}M`} />
                 <Tooltip formatter={(v: any) => fmtNGN(v)} />
-                <Bar dataKey="spend" fill={PURPLE} radius={[6, 6, 0, 0]} />
+                <Bar dataKey="spend" fill={PURPLE} radius={[6, 6, 0, 0]} cursor="pointer" />
               </BarChart>
             </ResponsiveContainer>
+            <p className="text-xs text-muted-foreground -mt-4">Click a bar to open that month's cost sheets.</p>
           </CardContent>
         </Card>
         <Card>
@@ -190,7 +301,11 @@ function AdminDashboard() {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={45} outerRadius={80}>
+                  <Pie
+                    data={pieData} dataKey="value" nameKey="name" innerRadius={45} outerRadius={80}
+                    cursor="pointer"
+                    onClick={(d: any) => navigate({ to: "/projects", search: { status: d?.name ?? d?.payload?.name } })}
+                  >
                     {pieData.map((d) => <Cell key={d.name} fill={STATUS_COLORS[d.name] ?? PURPLE} />)}
                   </Pie>
                   <Tooltip />
@@ -209,14 +324,20 @@ function AdminDashboard() {
             <p className="text-sm text-muted-foreground">No projects yet.</p>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={bvaData} layout="vertical" margin={{ left: 40 }}>
+              <BarChart
+                data={bvaData} layout="vertical" margin={{ left: 40 }}
+                onClick={(e: any) => {
+                  const p = e?.activePayload?.[0]?.payload;
+                  if (p?.id) navigate({ to: "/projects/$id", params: { id: p.id } });
+                }}
+              >
                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                 <XAxis type="number" tickFormatter={(v) => `₦${(v / 1_000_000).toFixed(1)}M`} />
                 <YAxis type="category" dataKey="name" width={140} />
                 <Tooltip formatter={(v: any) => fmtNGN(v)} />
                 <Legend />
-                <Bar dataKey="budget" fill="hsl(272 60% 75%)" name="Budget" />
-                <Bar dataKey="actual" fill={PURPLE} name="Actual" />
+                <Bar dataKey="budget" fill="hsl(272 60% 75%)" name="Budget" cursor="pointer" />
+                <Bar dataKey="actual" fill={PURPLE} name="Actual" cursor="pointer" />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -245,10 +366,10 @@ function AdminDashboard() {
           <CardContent className="divide-y">
             {topSuppliers.length === 0 ? <p className="text-sm text-muted-foreground py-2">No supplier spend yet.</p> :
               topSuppliers.map((s) => (
-                <div key={s.id} className="flex items-center justify-between py-2">
+                <Link key={s.id} to="/purchase-orders" className="flex items-center justify-between py-2 hover:text-primary">
                   <span className="text-sm truncate">{s.name}</span>
                   <span className="text-sm font-semibold">{fmtNGN(s.spend)}</span>
-                </div>
+                </Link>
               ))}
           </CardContent>
         </Card>
@@ -272,7 +393,7 @@ function AdminDashboard() {
           <CardContent className="divide-y">
             {pendingReqs.length === 0 ? <p className="text-sm text-muted-foreground py-2">No pending requisitions.</p> :
               pendingReqs.map((r: any) => (
-                <Link key={r.id} to="/requisitions" className="flex items-center justify-between py-2 hover:text-primary">
+                <Link key={r.id} to="/requisitions" search={{ status: "Pending Approval" }} className="flex items-center justify-between py-2 hover:text-primary">
                   <span className="text-sm">{r.number} · {projectName(r.project_id)}</span>
                   <span className="text-xs text-muted-foreground">{fmtNGN(r.total_amount)}</span>
                 </Link>
@@ -282,10 +403,10 @@ function AdminDashboard() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Recent Activity</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Recent Activity — last {logLimit} in range</CardTitle></CardHeader>
         <CardContent className="divide-y">
           {activity.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-2">No activity logged yet.</p>
+            <p className="text-sm text-muted-foreground py-2">No activity logged in this range.</p>
           ) : activity.map((a: any) => (
             <div key={a.id} className="py-2 flex items-center justify-between gap-3 text-sm">
               <div className="min-w-0">
@@ -303,9 +424,9 @@ function AdminDashboard() {
   );
 }
 
-function Stat({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+function Stat({ icon: Icon, label, value, onClick }: { icon: any; label: string; value: string; onClick?: () => void }) {
   return (
-    <Card>
+    <Card onClick={onClick} className={onClick ? "cursor-pointer transition-colors hover:bg-muted/50" : undefined}>
       <CardContent className="pt-6">
         <div className="flex items-center justify-between">
           <div className="min-w-0">
