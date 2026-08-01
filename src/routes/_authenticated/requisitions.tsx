@@ -129,9 +129,6 @@ function RequisitionsPage() {
                   </TableCell>
                 </TableRow>
               ))}
-
-                </TableRow>
-              ))}
             </TableBody>
           </Table>
         </div>
