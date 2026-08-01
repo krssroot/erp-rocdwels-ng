@@ -297,9 +297,24 @@ function RequisitionDialog({ initial, onClose }: { initial: any | null; onClose:
       </div>
 
       <DialogFooter>
+        <Button
+          variant="outline"
+          disabled={!reqId}
+          onClick={() => exportRequisitionPdf({
+            req: { ...form, id: reqId, number: initial?.number, created_at: initial?.created_at, updated_at: initial?.updated_at, total_amount: total },
+            projectName: (projects ?? []).find((p: any) => p.id === form.project_id)?.name,
+            costCodeLabel: codeInfo?.code,
+            lines,
+            supplierName: (id?: string) => (suppliers ?? []).find((s: any) => s.id === id)?.name ?? "—",
+            generatedBy: dialogUser?.email ?? undefined,
+          })}
+        >
+          <FileDown className="h-4 w-4 mr-2" /> Export PDF
+        </Button>
         <Button variant="outline" onClick={onClose}>Close</Button>
         <Button onClick={save}>Save</Button>
       </DialogFooter>
+
     </DialogContent>
   );
 }
