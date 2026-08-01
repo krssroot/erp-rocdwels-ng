@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,28 +12,64 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, AlertTriangle, FileDown } from "lucide-react";
 import { fmtNGN } from "@/lib/roles";
+import { useSession } from "@/hooks/use-session";
+import { exportRequisitionPdf } from "@/lib/pdf-exports";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/requisitions")({
   ssr: false,
+  validateSearch: (search: Record<string, unknown>) => ({
+    status: typeof search.status === "string" ? search.status : undefined,
+    project: typeof search.project === "string" ? search.project : undefined,
+    from: typeof search.from === "string" ? search.from : undefined,
+    to: typeof search.to === "string" ? search.to : undefined,
+  }),
   component: RequisitionsPage,
 });
 
 const TYPES = ["Materials", "Labour", "Equipment", "Services"] as const;
 const STATUSES = ["Draft", "Pending Approval", "Approved", "Rejected", "Fulfilled"] as const;
 
+export async function downloadRequisitionPdf(req: any, generatedBy?: string) {
+  const [{ data: lines }, { data: sups }] = await Promise.all([
+    supabase.from("requisition_lines").select("*").eq("requisition_id", req.id).is("deleted_at", null).order("created_at"),
+    supabase.from("suppliers").select("id,name").is("deleted_at", null),
+  ]);
+  const nameById = new Map((sups ?? []).map((s: any) => [s.id, s.name]));
+  exportRequisitionPdf({
+    req,
+    projectName: req.projects?.name,
+    costCodeLabel: req.cost_codes?.code,
+    lines: lines ?? [],
+    supplierName: (id?: string) => (id ? nameById.get(id) ?? "—" : "—"),
+    generatedBy,
+  });
+}
+
 function RequisitionsPage() {
   const qc = useQueryClient();
   const del = useSoftDelete("requisitions");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
+  const { status, project, from, to } = Route.useSearch();
+  const { user } = useSession();
 
   const { data: reqs } = useQuery({
     queryKey: ["requisitions"],
     queryFn: async () => (await supabase.from("requisitions").select("*, projects(name), cost_codes(code,budgeted_amount)").is("deleted_at", null).order("created_at", { ascending: false })).data ?? [],
   });
+
+  const rows = (reqs ?? []).filter((r: any) => {
+    if (status && r.status !== status) return false;
+    if (project && r.project_id !== project) return false;
+    const d = new Date(r.created_at).getTime();
+    if (from && d < new Date(from + "T00:00:00").getTime()) return false;
+    if (to && d > new Date(to + "T23:59:59").getTime()) return false;
+    return true;
+  });
+  const filtered = !!(status || project || from || to);
 
   async function setStatus(id: string, status: string) {
     const { error } = await supabase.from("requisitions").update({ status }).eq("id", id);
@@ -42,6 +78,7 @@ function RequisitionsPage() {
     qc.invalidateQueries({ queryKey: ["requisitions"] });
     qc.invalidateQueries({ queryKey: ["purchase_orders"] });
   }
+
 
   return (
     <div>
