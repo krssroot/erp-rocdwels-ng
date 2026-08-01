@@ -192,3 +192,105 @@ export function exportSiteReportPdf(args: {
   addFooter(doc, generatedBy);
   doc.save(`site-report-${report.report_date ?? Date.now()}.pdf`);
 }
+
+export function exportRequisitionPdf(args: {
+  req: any;
+  projectName?: string;
+  costCodeLabel?: string;
+  lines: any[];
+  supplierName?: (id?: string) => string;
+  generatedBy?: string;
+}) {
+  const { req, projectName, costCodeLabel, lines, supplierName, generatedBy } = args;
+  const doc = createBrandedDoc("Requisition");
+
+  let y = 80;
+  y = keyValueBlock(doc, [
+    ["Requisition No.", safe(req.number)],
+    ["Project", safe(projectName)],
+    ["Cost Code", safe(costCodeLabel)],
+    ["Type", safe(req.type)],
+    ["Department", safe(req.department)],
+    ["Deadline", safe(req.deadline)],
+    ["Change Order", req.is_change_order ? "Yes" : "No"],
+    ["Status", safe(req.status)],
+    ["Raised On", req.created_at ? new Date(req.created_at).toLocaleString("en-NG") : "—"],
+  ], y);
+
+  y = sectionTitle(doc, "Materials / Cost Summary", y);
+  let total = 0;
+  const rows = lines.map((l) => {
+    const t = n(l.total ?? n(l.qty) * n(l.unit_cost));
+    total += t;
+    return [
+      safe(l.item_name), n(l.qty), safe(l.unit),
+      fmtNGN(l.unit_cost), fmtNGN(t),
+      safe(supplierName ? supplierName(l.supplier_id) : l.supplier_id),
+    ];
+  });
+  y = table(doc,
+    ["Item", "Qty", "Unit", "Unit Cost ₦", "Total ₦", "Supplier"],
+    rows.length ? rows : [["—", "No lines", "", "", "", ""]],
+    y);
+
+  y = sectionTitle(doc, "Cost Summary", y);
+  y = table(doc, ["Metric", "Value"], [
+    ["Line Items", String(lines.length)],
+    ["Requisition Total", fmtNGN(total || n(req.total_amount))],
+  ], y);
+
+  y = sectionTitle(doc, "Approvals", y);
+  y = table(doc,
+    ["Stage", "Role", "Status", "Date"],
+    [
+      ["Raised", "Originator", "Completed", req.created_at ? new Date(req.created_at).toLocaleDateString("en-NG") : "—"],
+      ["Submitted for Approval", "Site / Project Manager",
+        ["Pending Approval", "Approved", "Rejected", "Fulfilled"].includes(req.status) ? "Completed" : "Pending", "—"],
+      ["Approval", "Project Manager / Procurement",
+        req.status === "Approved" || req.status === "Fulfilled" ? "Approved" : req.status === "Rejected" ? "Rejected" : "Pending",
+        req.updated_at ? new Date(req.updated_at).toLocaleDateString("en-NG") : "—"],
+      ["Fulfilment", "Procurement", req.status === "Fulfilled" ? "Completed" : "Pending", "—"],
+    ], y);
+
+  if (req.notes) {
+    y = sectionTitle(doc, "Notes", y);
+    doc.setFontSize(10);
+    const nl = doc.splitTextToSize(String(req.notes), 515);
+    doc.text(nl, 40, y + 8);
+  }
+
+  addFooter(doc, generatedBy);
+  doc.save(`${req.number ?? "requisition"}.pdf`);
+}
+
+export function exportActivityLogPdf(args: {
+  rows: any[];
+  scopeLabel: string;
+  rangeLabel?: string;
+  generatedBy?: string;
+}) {
+  const { rows, scopeLabel, rangeLabel, generatedBy } = args;
+  const doc = createBrandedDoc("Activity Log");
+
+  let y = 80;
+  y = keyValueBlock(doc, [
+    ["Scope", safe(scopeLabel)],
+    ["Range", safe(rangeLabel ?? "All time")],
+    ["Actions Included", String(rows.length)],
+  ], y);
+
+  y = sectionTitle(doc, `Last ${rows.length} Actions`, y);
+  y = table(doc,
+    ["When", "User", "Action", "Record", "Type"],
+    rows.length ? rows.map((a) => [
+      a.created_at ? new Date(a.created_at).toLocaleString("en-NG") : "—",
+      safe(a.actor_email ?? "System"),
+      safe(a.action),
+      safe(a.entity_label),
+      safe(a.entity_type),
+    ]) : [["—", "No activity recorded", "", "", ""]],
+    y);
+
+  addFooter(doc, generatedBy);
+  doc.save(`activity-log-${Date.now()}.pdf`);
+}

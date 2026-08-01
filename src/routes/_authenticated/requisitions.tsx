@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,28 +12,64 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, AlertTriangle, FileDown } from "lucide-react";
 import { fmtNGN } from "@/lib/roles";
+import { useSession } from "@/hooks/use-session";
+import { exportRequisitionPdf } from "@/lib/pdf-exports";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/requisitions")({
   ssr: false,
+  validateSearch: (search: Record<string, unknown>) => ({
+    status: typeof search.status === "string" ? search.status : undefined,
+    project: typeof search.project === "string" ? search.project : undefined,
+    from: typeof search.from === "string" ? search.from : undefined,
+    to: typeof search.to === "string" ? search.to : undefined,
+  }),
   component: RequisitionsPage,
 });
 
 const TYPES = ["Materials", "Labour", "Equipment", "Services"] as const;
 const STATUSES = ["Draft", "Pending Approval", "Approved", "Rejected", "Fulfilled"] as const;
 
+export async function downloadRequisitionPdf(req: any, generatedBy?: string) {
+  const [{ data: lines }, { data: sups }] = await Promise.all([
+    supabase.from("requisition_lines").select("*").eq("requisition_id", req.id).is("deleted_at", null).order("created_at"),
+    supabase.from("suppliers").select("id,name").is("deleted_at", null),
+  ]);
+  const nameById = new Map((sups ?? []).map((s: any) => [s.id, s.name]));
+  exportRequisitionPdf({
+    req,
+    projectName: req.projects?.name,
+    costCodeLabel: req.cost_codes?.code,
+    lines: lines ?? [],
+    supplierName: (id?: string) => (id ? nameById.get(id) ?? "—" : "—"),
+    generatedBy,
+  });
+}
+
 function RequisitionsPage() {
   const qc = useQueryClient();
   const del = useSoftDelete("requisitions");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
+  const { status, project, from, to } = Route.useSearch();
+  const { user } = useSession();
 
   const { data: reqs } = useQuery({
     queryKey: ["requisitions"],
     queryFn: async () => (await supabase.from("requisitions").select("*, projects(name), cost_codes(code,budgeted_amount)").is("deleted_at", null).order("created_at", { ascending: false })).data ?? [],
   });
+
+  const rows = (reqs ?? []).filter((r: any) => {
+    if (status && r.status !== status) return false;
+    if (project && r.project_id !== project) return false;
+    const d = new Date(r.created_at).getTime();
+    if (from && d < new Date(from + "T00:00:00").getTime()) return false;
+    if (to && d > new Date(to + "T23:59:59").getTime()) return false;
+    return true;
+  });
+  const filtered = !!(status || project || from || to);
 
   async function setStatus(id: string, status: string) {
     const { error } = await supabase.from("requisitions").update({ status }).eq("id", id);
@@ -42,6 +78,7 @@ function RequisitionsPage() {
     qc.invalidateQueries({ queryKey: ["requisitions"] });
     qc.invalidateQueries({ queryKey: ["purchase_orders"] });
   }
+
 
   return (
     <div>
@@ -54,19 +91,26 @@ function RequisitionsPage() {
           </Button>
         }
       />
-      {(reqs ?? []).length === 0 ? (
-        <EmptyState title="No requisitions yet" description="Raise a new requisition for materials, labour, equipment or services." />
+      {filtered && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+          {status && <Badge>Status: {status}</Badge>}
+          {(from || to) && <Badge variant="secondary">{from ?? "…"} → {to ?? "…"}</Badge>}
+          <Link to="/requisitions" search={{}} className="text-muted-foreground hover:text-primary">Clear filters</Link>
+        </div>
+      )}
+      {rows.length === 0 ? (
+        <EmptyState title={filtered ? "No requisitions match this filter" : "No requisitions yet"} description={filtered ? "Try clearing the filter." : "Raise a new requisition for materials, labour, equipment or services."} />
       ) : (
         <div className="border rounded-lg bg-card">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Number</TableHead><TableHead>Project</TableHead><TableHead>Type</TableHead>
-                <TableHead>Total</TableHead><TableHead>Status</TableHead><TableHead className="w-40"></TableHead>
+                <TableHead>Total</TableHead><TableHead>Status</TableHead><TableHead className="w-48"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(reqs ?? []).map((r: any) => (
+              {rows.map((r: any) => (
                 <TableRow key={r.id}>
                   <TableCell><button className="font-medium hover:text-primary" onClick={() => { setEditing(r); setOpen(true); }}>{r.number}</button></TableCell>
                   <TableCell>{r.projects?.name ?? "—"}</TableCell>
@@ -78,6 +122,9 @@ function RequisitionsPage() {
                       <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
                       <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                     </Select>
+                    <Button size="icon" variant="ghost" title="Export PDF" onClick={() => downloadRequisitionPdf(r, user?.email ?? undefined)}>
+                      <FileDown className="h-4 w-4" />
+                    </Button>
                     <ConfirmDelete onConfirm={() => del.mutate(r.id)} />
                   </TableCell>
                 </TableRow>
@@ -96,6 +143,7 @@ function RequisitionsPage() {
 
 function RequisitionDialog({ initial, onClose }: { initial: any | null; onClose: () => void }) {
   const qc = useQueryClient();
+  const { user: dialogUser } = useSession();
   const [form, setForm] = useState<any>(initial ?? {
     project_id: "", cost_code_id: "", type: "Materials", department: "",
     deadline: "", is_change_order: false, status: "Draft", notes: "",
@@ -250,9 +298,24 @@ function RequisitionDialog({ initial, onClose }: { initial: any | null; onClose:
       </div>
 
       <DialogFooter>
+        <Button
+          variant="outline"
+          disabled={!reqId}
+          onClick={() => exportRequisitionPdf({
+            req: { ...form, id: reqId, number: initial?.number, created_at: initial?.created_at, updated_at: initial?.updated_at, total_amount: total },
+            projectName: (projects ?? []).find((p: any) => p.id === form.project_id)?.name,
+            costCodeLabel: codeInfo?.code,
+            lines,
+            supplierName: (id?: string) => (suppliers ?? []).find((s: any) => s.id === id)?.name ?? "—",
+            generatedBy: dialogUser?.email ?? undefined,
+          })}
+        >
+          <FileDown className="h-4 w-4 mr-2" /> Export PDF
+        </Button>
         <Button variant="outline" onClick={onClose}>Close</Button>
         <Button onClick={save}>Save</Button>
       </DialogFooter>
+
     </DialogContent>
   );
 }

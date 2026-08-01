@@ -16,6 +16,12 @@ import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/cost-sheets/")({
   ssr: false,
+  validateSearch: (search: Record<string, unknown>) => ({
+    from: typeof search.from === "string" ? search.from : undefined,
+    to: typeof search.to === "string" ? search.to : undefined,
+    status: typeof search.status === "string" ? search.status : undefined,
+    project: typeof search.project === "string" ? search.project : undefined,
+  }),
   component: CostSheetsPage,
 });
 
@@ -25,6 +31,17 @@ function CostSheetsPage() {
   const { data, isLoading } = useList<any>("cost_sheets", { select: "*, projects(name)", order: "created_at" });
   const del = useSoftDelete("cost_sheets");
   const [open, setOpen] = useState(false);
+  const { from, to, status, project } = Route.useSearch();
+
+  const rows = (data ?? []).filter((s: any) => {
+    if (status && s.status !== status) return false;
+    if (project && s.project_id !== project) return false;
+    const d = new Date(s.sheet_date ?? s.created_at).getTime();
+    if (from && d < new Date(from + "T00:00:00").getTime()) return false;
+    if (to && d > new Date(to + "T23:59:59").getTime()) return false;
+    return true;
+  });
+  const filtered = !!(from || to || status || project);
 
   return (
     <div>
@@ -40,10 +57,18 @@ function CostSheetsPage() {
           </Dialog>
         }
       />
+      {filtered && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+          {status && <Badge>Status: {status}</Badge>}
+          {(from || to) && <Badge variant="secondary">{from ?? "…"} → {to ?? "…"}</Badge>}
+          <Link to="/cost-sheets" search={{}} className="text-muted-foreground hover:text-primary">Clear filters</Link>
+        </div>
+      )}
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
-      ) : (data ?? []).length === 0 ? (
-        <EmptyState title="No cost sheets yet" description="Create your first job cost sheet." />
+      ) : rows.length === 0 ? (
+        <EmptyState title={filtered ? "No cost sheets match this filter" : "No cost sheets yet"} description={filtered ? "Try clearing the filter or widening the date range." : "Create your first job cost sheet."} />
+
       ) : (
         <div className="border rounded-lg bg-card">
           <Table>
@@ -58,7 +83,7 @@ function CostSheetsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(data ?? []).map((s) => (
+              {rows.map((s: any) => (
                 <TableRow key={s.id}>
                   <TableCell>
                     <Link to="/cost-sheets/$id" params={{ id: s.id }} className="font-medium hover:text-primary">

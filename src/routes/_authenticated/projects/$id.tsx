@@ -8,9 +8,12 @@ import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/shared";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ProjectDialog } from "./index";
 import { fmtNGN } from "@/lib/roles";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { useSession } from "@/hooks/use-session";
+import { exportActivityLogPdf } from "@/lib/pdf-exports";
+import { ArrowLeft, Pencil, FileDown } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({
@@ -104,7 +107,7 @@ function ProjectDetail() {
         </TabsContent>
         <TabsContent value="documents"><p className="text-sm text-muted-foreground p-4">Documents module opens on the main sidebar.</p></TabsContent>
         <TabsContent value="team"><p className="text-sm text-muted-foreground p-4">Assign staff from the Staff module.</p></TabsContent>
-        <TabsContent value="activity"><p className="text-sm text-muted-foreground p-4">Activity log will accumulate as records are created and updated.</p></TabsContent>
+        <TabsContent value="activity"><ProjectActivity projectId={id} projectName={project.name} /></TabsContent>
       </Tabs>
     </div>
   );
@@ -120,6 +123,68 @@ function SimpleList({ items, render, emptyLink, emptyLabel }: { items: any[]; re
   return (
     <div className="border rounded-lg bg-card divide-y">
       {items.map((i) => <div key={i.id} className="p-3 text-sm">{render(i)}</div>)}
+    </div>
+  );
+}
+
+function ProjectActivity({ projectId, projectName }: { projectId: string; projectName: string }) {
+  const [limit, setLimit] = useState("25");
+  const { user } = useSession();
+
+  const { data: logs = [], isLoading } = useQuery({
+    queryKey: ["project_activity", projectId, limit],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("activity_logs")
+        .select("*")
+        .or(`entity_id.eq.${projectId},metadata->>project_id.eq.${projectId}`)
+        .order("created_at", { ascending: false })
+        .limit(Number(limit));
+      return data ?? [];
+    },
+  });
+
+  return (
+    <div className="border rounded-lg bg-card">
+      <div className="p-3 flex flex-wrap items-center gap-2 border-b">
+        <span className="text-sm font-medium mr-auto">Activity Log</span>
+        <Select value={limit} onValueChange={setLimit}>
+          <SelectTrigger className="h-9 w-32"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {["10", "25", "50", "100", "250"].map((n) => <SelectItem key={n} value={n}>Last {n}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Button
+          variant="outline"
+          className="h-9"
+          onClick={() => exportActivityLogPdf({
+            rows: logs,
+            scopeLabel: `Project — ${projectName}`,
+            generatedBy: user?.email ?? undefined,
+          })}
+        >
+          <FileDown className="h-4 w-4 mr-2" /> Export Activity Log
+        </Button>
+      </div>
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground p-4">Loading…</p>
+      ) : logs.length === 0 ? (
+        <p className="text-sm text-muted-foreground p-4">No activity recorded for this project yet.</p>
+      ) : (
+        <div className="divide-y">
+          {logs.map((a: any) => (
+            <div key={a.id} className="p-3 flex items-center justify-between gap-3 text-sm">
+              <div className="min-w-0">
+                <span className="font-medium">{a.actor_email ?? "System"}</span>{" "}
+                <span className="text-muted-foreground">{a.action}</span>{" "}
+                {a.entity_label && <span>· {a.entity_label}</span>}
+                {a.entity_type && <span className="text-muted-foreground"> ({a.entity_type})</span>}
+              </div>
+              <span className="text-xs text-muted-foreground shrink-0">{new Date(a.created_at).toLocaleString("en-NG")}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
