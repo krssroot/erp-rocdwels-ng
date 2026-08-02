@@ -175,6 +175,7 @@ function CostSheetDetail() {
 
     const { error } = await supabase.from("cost_sheets").update({ status: v }).eq("id", id);
     if (error) return toast.error(error.message);
+    await logActivity(`status → ${to}`, "cost_sheets", id, sheet.number ?? sheet.title ?? undefined, { from, to });
     qc.invalidateQueries({ queryKey: ["cost_sheets"] });
 
     if (to === "Approved" && sheet.cost_code_id) {
