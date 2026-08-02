@@ -16,6 +16,7 @@ import { Plus, Trash2, AlertTriangle, FileDown } from "lucide-react";
 import { fmtNGN } from "@/lib/roles";
 import { useSession } from "@/hooks/use-session";
 import { exportRequisitionPdf } from "@/lib/pdf-exports";
+import { logActivity } from "@/lib/activity";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/requisitions")({
