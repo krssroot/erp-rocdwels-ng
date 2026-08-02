@@ -50,6 +50,7 @@ const NAV: NavItem[] = [
   { to: "/staff", label: "Staff", icon: Users, allowedRoles: ["admin"] },
   { to: "/contacts", label: "Contacts", icon: ContactIcon, allowedRoles: ["admin", "project_manager"] },
   { to: "/variations", label: "Variation Orders", icon: GitBranch, allowedRoles: ["admin", "project_manager"] },
+  { to: "/notifications", label: "Notifications", icon: Bell, allowedRoles: ["admin", "project_manager", "site_manager", "accountant", "procurement_officer"] },
   { to: "/recently-deleted", label: "Recently Deleted", icon: Trash2, allowedRoles: ["admin"] },
 ];
 
