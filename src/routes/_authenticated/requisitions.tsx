@@ -16,6 +16,7 @@ import { Plus, Trash2, AlertTriangle, FileDown } from "lucide-react";
 import { fmtNGN } from "@/lib/roles";
 import { useSession } from "@/hooks/use-session";
 import { exportRequisitionPdf } from "@/lib/pdf-exports";
+import { logActivity } from "@/lib/activity";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/requisitions")({
@@ -72,11 +73,14 @@ function RequisitionsPage() {
   const filtered = !!(status || project || from || to);
 
   async function setStatus(id: string, status: string) {
+    const row = (reqs ?? []).find((r: any) => r.id === id);
     const { error } = await supabase.from("requisitions").update({ status }).eq("id", id);
     if (error) return toast.error(error.message);
+    await logActivity(`status → ${status}`, "requisitions", id, row?.number, { to: status });
     toast.success(`Status → ${status}`);
     qc.invalidateQueries({ queryKey: ["requisitions"] });
     qc.invalidateQueries({ queryKey: ["purchase_orders"] });
+    qc.invalidateQueries({ queryKey: ["notifications"] });
   }
 
 

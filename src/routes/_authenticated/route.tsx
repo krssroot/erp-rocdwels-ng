@@ -13,6 +13,8 @@ import {
   Contact as ContactIcon, Bell, Trash2, LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GlobalSearch } from "@/components/global-search";
+import { NotificationBell } from "@/components/notification-bell";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -48,6 +50,7 @@ const NAV: NavItem[] = [
   { to: "/staff", label: "Staff", icon: Users, allowedRoles: ["admin"] },
   { to: "/contacts", label: "Contacts", icon: ContactIcon, allowedRoles: ["admin", "project_manager"] },
   { to: "/variations", label: "Variation Orders", icon: GitBranch, allowedRoles: ["admin", "project_manager"] },
+  { to: "/notifications", label: "Notifications", icon: Bell, allowedRoles: ["admin", "project_manager", "site_manager", "accountant", "procurement_officer"] },
   { to: "/recently-deleted", label: "Recently Deleted", icon: Trash2, allowedRoles: ["admin"] },
 ];
 
@@ -118,9 +121,8 @@ function AuthedLayout() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" aria-label="Notifications">
-                <Bell className="h-4 w-4" />
-              </Button>
+              <GlobalSearch />
+              <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="gap-2">

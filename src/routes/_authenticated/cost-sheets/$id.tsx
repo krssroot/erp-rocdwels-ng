@@ -17,6 +17,7 @@ import { fmtNGN } from "@/lib/roles";
 import { toast } from "sonner";
 import { useSession } from "@/hooks/use-session";
 import { exportCostSheetPdf } from "@/lib/pdf-exports";
+import { logActivity } from "@/lib/activity";
 
 export const Route = createFileRoute("/_authenticated/cost-sheets/$id")({
   ssr: false,
@@ -175,6 +176,7 @@ function CostSheetDetail() {
 
     const { error } = await supabase.from("cost_sheets").update({ status: v }).eq("id", id);
     if (error) return toast.error(error.message);
+    await logActivity(`status → ${to}`, "cost_sheets", id, sheet.number ?? sheet.title ?? undefined, { from, to });
     qc.invalidateQueries({ queryKey: ["cost_sheets"] });
 
     if (to === "Approved" && sheet.cost_code_id) {

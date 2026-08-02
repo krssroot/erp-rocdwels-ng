@@ -19,6 +19,7 @@ import { Route as AuthenticatedSiteReportsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedRequisitionsRouteImport } from './routes/_authenticated/requisitions'
 import { Route as AuthenticatedRecentlyDeletedRouteImport } from './routes/_authenticated/recently-deleted'
 import { Route as AuthenticatedPurchaseOrdersRouteImport } from './routes/_authenticated/purchase-orders'
+import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedMilestonesRouteImport } from './routes/_authenticated/milestones'
 import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authenticated/documents'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -82,6 +83,12 @@ const AuthenticatedPurchaseOrdersRoute =
     path: '/purchase-orders',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedNotificationsRoute =
+  AuthenticatedNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMilestonesRoute = AuthenticatedMilestonesRouteImport.update({
   id: '/milestones',
   path: '/milestones',
@@ -139,6 +146,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
   '/milestones': typeof AuthenticatedMilestonesRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
   '/purchase-orders': typeof AuthenticatedPurchaseOrdersRoute
   '/recently-deleted': typeof AuthenticatedRecentlyDeletedRoute
   '/requisitions': typeof AuthenticatedRequisitionsRoute
@@ -159,6 +167,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
   '/milestones': typeof AuthenticatedMilestonesRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
   '/purchase-orders': typeof AuthenticatedPurchaseOrdersRoute
   '/recently-deleted': typeof AuthenticatedRecentlyDeletedRoute
   '/requisitions': typeof AuthenticatedRequisitionsRoute
@@ -181,6 +190,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/documents': typeof AuthenticatedDocumentsRoute
   '/_authenticated/milestones': typeof AuthenticatedMilestonesRoute
+  '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/purchase-orders': typeof AuthenticatedPurchaseOrdersRoute
   '/_authenticated/recently-deleted': typeof AuthenticatedRecentlyDeletedRoute
   '/_authenticated/requisitions': typeof AuthenticatedRequisitionsRoute
@@ -203,6 +213,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/documents'
     | '/milestones'
+    | '/notifications'
     | '/purchase-orders'
     | '/recently-deleted'
     | '/requisitions'
@@ -223,6 +234,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/documents'
     | '/milestones'
+    | '/notifications'
     | '/purchase-orders'
     | '/recently-deleted'
     | '/requisitions'
@@ -244,6 +256,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/documents'
     | '/_authenticated/milestones'
+    | '/_authenticated/notifications'
     | '/_authenticated/purchase-orders'
     | '/_authenticated/recently-deleted'
     | '/_authenticated/requisitions'
@@ -335,6 +348,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPurchaseOrdersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/notifications': {
+      id: '/_authenticated/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/milestones': {
       id: '/_authenticated/milestones'
       path: '/milestones'
@@ -407,6 +427,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDocumentsRoute: typeof AuthenticatedDocumentsRoute
   AuthenticatedMilestonesRoute: typeof AuthenticatedMilestonesRoute
+  AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedPurchaseOrdersRoute: typeof AuthenticatedPurchaseOrdersRoute
   AuthenticatedRecentlyDeletedRoute: typeof AuthenticatedRecentlyDeletedRoute
   AuthenticatedRequisitionsRoute: typeof AuthenticatedRequisitionsRoute
@@ -426,6 +447,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDocumentsRoute: AuthenticatedDocumentsRoute,
   AuthenticatedMilestonesRoute: AuthenticatedMilestonesRoute,
+  AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedPurchaseOrdersRoute: AuthenticatedPurchaseOrdersRoute,
   AuthenticatedRecentlyDeletedRoute: AuthenticatedRecentlyDeletedRoute,
   AuthenticatedRequisitionsRoute: AuthenticatedRequisitionsRoute,
