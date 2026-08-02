@@ -17,6 +17,7 @@ import { fmtNGN } from "@/lib/roles";
 import { toast } from "sonner";
 import { useSession } from "@/hooks/use-session";
 import { exportCostSheetPdf } from "@/lib/pdf-exports";
+import { logActivity } from "@/lib/activity";
 
 export const Route = createFileRoute("/_authenticated/cost-sheets/$id")({
   ssr: false,
