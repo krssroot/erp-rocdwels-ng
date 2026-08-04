@@ -13,6 +13,8 @@ import { ProjectDialog } from "./index";
 import { fmtNGN } from "@/lib/roles";
 import { useSession } from "@/hooks/use-session";
 import { exportActivityLogPdf } from "@/lib/pdf-exports";
+import { Attachments } from "@/components/attachments";
+import { Chatter } from "@/components/chatter";
 import { ArrowLeft, Pencil, FileDown } from "lucide-react";
 import { useState } from "react";
 
