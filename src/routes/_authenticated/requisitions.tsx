@@ -231,7 +231,7 @@ function RequisitionDialog({ initial, onClose }: { initial: any | null; onClose:
   }
 
   return (
-    <DialogContent className="max-w-4xl">
+    <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle>{initial ? "Edit Requisition" : "New Requisition"}</DialogTitle></DialogHeader>
       <div className="grid gap-3 md:grid-cols-3">
         <div className="space-y-2"><Label>Project</Label>
