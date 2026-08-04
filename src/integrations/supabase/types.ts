@@ -50,6 +50,140 @@ export type Database = {
         }
         Relationships: []
       }
+      approval_steps: {
+        Row: {
+          approver_email: string | null
+          approver_id: string | null
+          approver_role: Database["public"]["Enums"]["app_role"] | null
+          comments: string | null
+          created_at: string
+          created_by: string | null
+          decided_at: string | null
+          decision: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          due_at: string | null
+          entity_id: string
+          entity_type: string
+          escalated_at: string | null
+          escalated_to: Database["public"]["Enums"]["app_role"] | null
+          id: string
+          project_id: string | null
+          sequence: number
+          stage: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approver_email?: string | null
+          approver_id?: string | null
+          approver_role?: Database["public"]["Enums"]["app_role"] | null
+          comments?: string | null
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decision?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          due_at?: string | null
+          entity_id: string
+          entity_type: string
+          escalated_at?: string | null
+          escalated_to?: Database["public"]["Enums"]["app_role"] | null
+          id?: string
+          project_id?: string | null
+          sequence?: number
+          stage: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approver_email?: string | null
+          approver_id?: string | null
+          approver_role?: Database["public"]["Enums"]["app_role"] | null
+          comments?: string | null
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decision?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          due_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          escalated_at?: string | null
+          escalated_to?: Database["public"]["Enums"]["app_role"] | null
+          id?: string
+          project_id?: string | null
+          sequence?: number
+          stage?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_steps_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attachments: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          mime_type: string | null
+          name: string
+          notes: string | null
+          size_bytes: number | null
+          storage_path: string
+          updated_at: string
+          uploaded_by: string | null
+          uploaded_by_email: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          mime_type?: string | null
+          name: string
+          notes?: string | null
+          size_bytes?: number | null
+          storage_path: string
+          updated_at?: string
+          uploaded_by?: string | null
+          uploaded_by_email?: string | null
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          mime_type?: string | null
+          name?: string
+          notes?: string | null
+          size_bytes?: number | null
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          uploaded_by_email?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           company: string | null
@@ -407,6 +541,62 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discussions: {
+        Row: {
+          author_email: string | null
+          author_id: string | null
+          author_name: string | null
+          body: string
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          mentions: string[]
+          parent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_email?: string | null
+          author_id?: string | null
+          author_name?: string | null
+          body: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          mentions?: string[]
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_email?: string | null
+          author_id?: string | null
+          author_name?: string | null
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          mentions?: string[]
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discussions_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "discussions"
             referencedColumns: ["id"]
           },
         ]
@@ -1036,6 +1226,97 @@ export type Database = {
         }
         Relationships: []
       }
+      supplier_quotes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          id: string
+          item_name: string | null
+          lead_time_days: number | null
+          notes: string | null
+          payment_terms: string | null
+          qty: number | null
+          requisition_id: string | null
+          requisition_line_id: string | null
+          selected: boolean
+          shortlisted: boolean
+          supplier_id: string | null
+          total_amount: number | null
+          unit: string | null
+          unit_price: number | null
+          updated_at: string
+          validity_date: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          id?: string
+          item_name?: string | null
+          lead_time_days?: number | null
+          notes?: string | null
+          payment_terms?: string | null
+          qty?: number | null
+          requisition_id?: string | null
+          requisition_line_id?: string | null
+          selected?: boolean
+          shortlisted?: boolean
+          supplier_id?: string | null
+          total_amount?: number | null
+          unit?: string | null
+          unit_price?: number | null
+          updated_at?: string
+          validity_date?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          id?: string
+          item_name?: string | null
+          lead_time_days?: number | null
+          notes?: string | null
+          payment_terms?: string | null
+          qty?: number | null
+          requisition_id?: string | null
+          requisition_line_id?: string | null
+          selected?: boolean
+          shortlisted?: boolean
+          supplier_id?: string | null
+          total_amount?: number | null
+          unit?: string | null
+          unit_price?: number | null
+          updated_at?: string
+          validity_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_quotes_requisition_id_fkey"
+            columns: ["requisition_id"]
+            isOneToOne: false
+            referencedRelation: "requisitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_quotes_requisition_line_id_fkey"
+            columns: ["requisition_line_id"]
+            isOneToOne: false
+            referencedRelation: "requisition_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_quotes_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           bank_details: string | null
@@ -1192,6 +1473,7 @@ export type Database = {
       can_manage_procurement: { Args: { _uid: string }; Returns: boolean }
       can_manage_requisitions: { Args: { _uid: string }; Returns: boolean }
       can_manage_site: { Args: { _uid: string }; Returns: boolean }
+      escalate_overdue_approvals: { Args: never; Returns: undefined }
       get_user_roles: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"][]
