@@ -52,7 +52,7 @@ export function SupplierComparison({
     const map = new Map<string, { name: string; total: number; lead: number[]; count: number; shortlisted: boolean }>();
     for (const q of quotes as any[]) {
       const id = q.supplier_id ?? "none";
-      const e = map.get(id) ?? { name: q.suppliers?.name ?? "Unassigned", total: 0, lead: [], count: 0, shortlisted: false };
+      const e = map.get(id) ?? { name: q.suppliers?.name ?? "Unassigned", total: 0, lead: [] as number[], count: 0, shortlisted: false };
       e.total += Number(q.total_amount ?? 0);
       if (q.lead_time_days != null) e.lead.push(Number(q.lead_time_days));
       e.count += 1;
