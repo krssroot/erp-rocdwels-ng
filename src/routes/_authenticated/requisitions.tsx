@@ -17,6 +17,11 @@ import { fmtNGN } from "@/lib/roles";
 import { useSession } from "@/hooks/use-session";
 import { exportRequisitionPdf } from "@/lib/pdf-exports";
 import { logActivity } from "@/lib/activity";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ApprovalPanel } from "@/components/approvals";
+import { Attachments } from "@/components/attachments";
+import { Chatter } from "@/components/chatter";
+import { SupplierComparison } from "@/components/supplier-comparison";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/requisitions")({
