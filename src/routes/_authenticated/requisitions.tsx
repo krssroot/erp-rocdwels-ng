@@ -301,6 +301,35 @@ function RequisitionDialog({ initial, onClose }: { initial: any | null; onClose:
         </div>
       </div>
 
+      {reqId && (
+        <Tabs defaultValue="suppliers" className="mt-2">
+          <TabsList>
+            <TabsTrigger value="suppliers">Supplier Comparison</TabsTrigger>
+            <TabsTrigger value="approvals">Approvals</TabsTrigger>
+            <TabsTrigger value="attachments">Attachments</TabsTrigger>
+            <TabsTrigger value="discussion">Discussion</TabsTrigger>
+          </TabsList>
+          <TabsContent value="suppliers">
+            <SupplierComparison requisitionId={reqId} recordLabel={initial?.number ?? "requisition"} />
+          </TabsContent>
+          <TabsContent value="approvals">
+            <ApprovalPanel
+              entityType="requisitions"
+              entityId={reqId}
+              recordLabel={initial?.number ?? "Requisition"}
+              projectId={form.project_id || null}
+              meta={[["Type", form.type ?? "—"], ["Status", form.status ?? "—"]]}
+            />
+          </TabsContent>
+          <TabsContent value="attachments">
+            <Attachments entityType="requisitions" entityId={reqId} recordLabel={initial?.number ?? undefined} />
+          </TabsContent>
+          <TabsContent value="discussion">
+            <Chatter entityType="requisitions" entityId={reqId} title={`Discussion — ${initial?.number ?? "Requisition"}`} />
+          </TabsContent>
+        </Tabs>
+      )}
+
       <DialogFooter>
         <Button
           variant="outline"
