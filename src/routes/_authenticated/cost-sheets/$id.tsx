@@ -18,6 +18,9 @@ import { toast } from "sonner";
 import { useSession } from "@/hooks/use-session";
 import { exportCostSheetPdf } from "@/lib/pdf-exports";
 import { logActivity } from "@/lib/activity";
+import { ApprovalPanel } from "@/components/approvals";
+import { Attachments } from "@/components/attachments";
+import { Chatter } from "@/components/chatter";
 
 export const Route = createFileRoute("/_authenticated/cost-sheets/$id")({
   ssr: false,
@@ -290,10 +293,28 @@ function CostSheetDetail() {
           <TabsTrigger value="materials">Materials</TabsTrigger>
           <TabsTrigger value="labour">Labour</TabsTrigger>
           <TabsTrigger value="overhead">Overhead</TabsTrigger>
+          <TabsTrigger value="approvals">Approvals</TabsTrigger>
+          <TabsTrigger value="attachments">Attachments</TabsTrigger>
+          <TabsTrigger value="discussion">Discussion</TabsTrigger>
         </TabsList>
         <TabsContent value="materials"><LinesTable cols={MAT_COLS} api={mat} totalsKeys={["planned_amount", "actual_purchased_cost"]} /></TabsContent>
         <TabsContent value="labour"><LinesTable cols={LAB_COLS} api={lab} totalsKeys={["planned_cost", "actual_cost"]} /></TabsContent>
         <TabsContent value="overhead"><LinesTable cols={OVH_COLS} api={ovh} totalsKeys={["planned_amount", "actual_amount"]} /></TabsContent>
+        <TabsContent value="approvals">
+          <ApprovalPanel
+            entityType="cost_sheets"
+            entityId={id}
+            recordLabel={sheet.number ?? "Cost Sheet"}
+            projectId={sheet.project_id}
+            meta={[["Project", sheet.projects?.name ?? "—"], ["Status", sheet.status]]}
+          />
+        </TabsContent>
+        <TabsContent value="attachments">
+          <Attachments entityType="cost_sheets" entityId={id} recordLabel={sheet.number ?? undefined} />
+        </TabsContent>
+        <TabsContent value="discussion">
+          <Chatter entityType="cost_sheets" entityId={id} title={`Discussion — ${sheet.number}`} />
+        </TabsContent>
       </Tabs>
 
       {/* FOOTER TOTALS */}

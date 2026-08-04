@@ -17,6 +17,11 @@ import { fmtNGN } from "@/lib/roles";
 import { useSession } from "@/hooks/use-session";
 import { exportRequisitionPdf } from "@/lib/pdf-exports";
 import { logActivity } from "@/lib/activity";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ApprovalPanel } from "@/components/approvals";
+import { Attachments } from "@/components/attachments";
+import { Chatter } from "@/components/chatter";
+import { SupplierComparison } from "@/components/supplier-comparison";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/requisitions")({
@@ -226,7 +231,7 @@ function RequisitionDialog({ initial, onClose }: { initial: any | null; onClose:
   }
 
   return (
-    <DialogContent className="max-w-4xl">
+    <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle>{initial ? "Edit Requisition" : "New Requisition"}</DialogTitle></DialogHeader>
       <div className="grid gap-3 md:grid-cols-3">
         <div className="space-y-2"><Label>Project</Label>
@@ -300,6 +305,35 @@ function RequisitionDialog({ initial, onClose }: { initial: any | null; onClose:
           <div className="text-sm font-semibold">Total: {fmtNGN(total)}</div>
         </div>
       </div>
+
+      {reqId && (
+        <Tabs defaultValue="suppliers" className="mt-2">
+          <TabsList>
+            <TabsTrigger value="suppliers">Supplier Comparison</TabsTrigger>
+            <TabsTrigger value="approvals">Approvals</TabsTrigger>
+            <TabsTrigger value="attachments">Attachments</TabsTrigger>
+            <TabsTrigger value="discussion">Discussion</TabsTrigger>
+          </TabsList>
+          <TabsContent value="suppliers">
+            <SupplierComparison requisitionId={reqId} recordLabel={initial?.number ?? "requisition"} />
+          </TabsContent>
+          <TabsContent value="approvals">
+            <ApprovalPanel
+              entityType="requisitions"
+              entityId={reqId}
+              recordLabel={initial?.number ?? "Requisition"}
+              projectId={form.project_id || null}
+              meta={[["Type", form.type ?? "—"], ["Status", form.status ?? "—"]]}
+            />
+          </TabsContent>
+          <TabsContent value="attachments">
+            <Attachments entityType="requisitions" entityId={reqId} recordLabel={initial?.number ?? undefined} />
+          </TabsContent>
+          <TabsContent value="discussion">
+            <Chatter entityType="requisitions" entityId={reqId} title={`Discussion — ${initial?.number ?? "Requisition"}`} />
+          </TabsContent>
+        </Tabs>
+      )}
 
       <DialogFooter>
         <Button

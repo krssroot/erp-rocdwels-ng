@@ -13,6 +13,8 @@ import { ProjectDialog } from "./index";
 import { fmtNGN } from "@/lib/roles";
 import { useSession } from "@/hooks/use-session";
 import { exportActivityLogPdf } from "@/lib/pdf-exports";
+import { Attachments } from "@/components/attachments";
+import { Chatter } from "@/components/chatter";
 import { ArrowLeft, Pencil, FileDown } from "lucide-react";
 import { useState } from "react";
 
@@ -89,7 +91,8 @@ function ProjectDetail() {
           <TabsTrigger value="cost-sheets">Cost Sheets</TabsTrigger>
           <TabsTrigger value="requisitions">Requisitions</TabsTrigger>
           <TabsTrigger value="budget">Budget</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="documents">Files</TabsTrigger>
+          <TabsTrigger value="discussion">Discussion</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
           <TabsTrigger value="activity">Activity Log</TabsTrigger>
         </TabsList>
@@ -105,7 +108,8 @@ function ProjectDetail() {
         <TabsContent value="budget">
           <SimpleList items={codes ?? []} render={(c) => `${c.code} · ${c.category} — ${fmtNGN(c.budgeted_amount)}`} emptyLink="/cost-codes" emptyLabel="Go to Cost Codes" />
         </TabsContent>
-        <TabsContent value="documents"><p className="text-sm text-muted-foreground p-4">Documents module opens on the main sidebar.</p></TabsContent>
+        <TabsContent value="documents"><Attachments entityType="projects" entityId={id} recordLabel={project.name} /></TabsContent>
+        <TabsContent value="discussion"><Chatter entityType="projects" entityId={id} title={`Discussion — ${project.name}`} /></TabsContent>
         <TabsContent value="team"><p className="text-sm text-muted-foreground p-4">Assign staff from the Staff module.</p></TabsContent>
         <TabsContent value="activity"><ProjectActivity projectId={id} projectName={project.name} /></TabsContent>
       </Tabs>

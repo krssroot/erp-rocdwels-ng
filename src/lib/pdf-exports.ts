@@ -294,3 +294,35 @@ export function exportActivityLogPdf(args: {
   addFooter(doc, generatedBy);
   doc.save(`activity-log-${Date.now()}.pdf`);
 }
+
+export function exportApprovalHistoryPdf(args: {
+  title: string;
+  meta: [string, string][];
+  steps: any[];
+  generatedBy?: string;
+}) {
+  const { title, meta, steps, generatedBy } = args;
+  const doc = createBrandedDoc("Approval History");
+
+  let y = 80;
+  y = keyValueBlock(doc, [["Record", safe(title)], ...meta, ["Steps", String(steps.length)]], y);
+
+  y = sectionTitle(doc, "Approval Trail", y);
+  y = table(doc,
+    ["#", "Stage", "Approver", "Role", "Status", "Decision", "Due", "Decided", "Comments"],
+    steps.length ? steps.map((s, i) => [
+      String(s.sequence ?? i + 1),
+      safe(s.stage),
+      safe(s.approver_email),
+      safe(s.approver_role),
+      safe(s.status),
+      safe(s.decision),
+      s.due_at ? new Date(s.due_at).toLocaleString("en-NG") : "—",
+      s.decided_at ? new Date(s.decided_at).toLocaleString("en-NG") : "—",
+      safe(s.comments),
+    ]) : [["—", "No approval steps recorded", "", "", "", "", "", "", ""]],
+    y);
+
+  addFooter(doc, generatedBy);
+  doc.save(`approval-history-${title.replace(/\s+/g, "-").toLowerCase()}.pdf`);
+}
