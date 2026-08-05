@@ -306,9 +306,29 @@ function CostSheetDetail() {
           <TabsTrigger value="overhead">Overhead</TabsTrigger>
           <TabsTrigger value="approvals">Approvals</TabsTrigger>
           <TabsTrigger value="attachments">Attachments</TabsTrigger>
+          <TabsTrigger value="history">Workflow history</TabsTrigger>
           <TabsTrigger value="discussion">Discussion</TabsTrigger>
         </TabsList>
+        <TabsContent value="history">
+          <div className="border rounded-lg bg-card p-4">
+            <div className="mb-3 flex flex-wrap gap-2 text-xs">
+              {STATUSES.filter((s) => s !== "Rejected").map((s, i) => (
+                <span
+                  key={s}
+                  className={
+                    "px-2 py-1 rounded-full border " +
+                    (s === sheet.status ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground")
+                  }
+                >
+                  {i + 1}. {s}
+                </span>
+              ))}
+            </div>
+            <ApprovalHistory budgetId={id} />
+          </div>
+        </TabsContent>
         <TabsContent value="materials"><LinesTable cols={MAT_COLS} api={mat} totalsKeys={["planned_amount", "actual_purchased_cost"]} /></TabsContent>
+
         <TabsContent value="labour"><LinesTable cols={LAB_COLS} api={lab} totalsKeys={["planned_cost", "actual_cost"]} /></TabsContent>
         <TabsContent value="overhead"><LinesTable cols={OVH_COLS} api={ovh} totalsKeys={["planned_amount", "actual_amount"]} /></TabsContent>
         <TabsContent value="approvals">
