@@ -37,11 +37,11 @@ type NavItem = {
 };
 
 const NAV: NavItem[] = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, allowedRoles: ["admin", "project_manager", "site_manager", "accountant", "procurement_officer"] },
-  { to: "/projects", label: "Projects", icon: FolderKanban, allowedRoles: ["admin", "project_manager", "site_manager"] },
-  { to: "/cost-sheets", label: "Job Cost Sheets", icon: FileSpreadsheet, allowedRoles: ["admin", "project_manager", "accountant"] },
-  { to: "/cost-codes", label: "Cost Codes", icon: Layers, allowedRoles: ["admin", "accountant"] },
-  { to: "/requisitions", label: "Requisitions", icon: ClipboardList, allowedRoles: ["admin", "project_manager", "site_manager", "procurement_officer"] },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, allowedRoles: ["admin", "project_manager", "site_manager", "accountant", "procurement_officer", "head_quantity_surveyor"] },
+  { to: "/projects", label: "Projects", icon: FolderKanban, allowedRoles: ["admin", "project_manager", "site_manager", "head_quantity_surveyor"] },
+  { to: "/cost-sheets", label: "Job Cost Sheets", icon: FileSpreadsheet, allowedRoles: ["admin", "project_manager", "accountant", "site_manager", "procurement_officer", "head_quantity_surveyor"] },
+  { to: "/cost-codes", label: "Cost Codes", icon: Layers, allowedRoles: ["admin", "accountant", "head_quantity_surveyor"] },
+  { to: "/requisitions", label: "Requisitions", icon: ClipboardList, allowedRoles: ["admin", "project_manager", "site_manager", "procurement_officer", "accountant", "head_quantity_surveyor"] },
   { to: "/suppliers", label: "Suppliers", icon: Truck, allowedRoles: ["admin", "accountant", "procurement_officer"] },
   { to: "/purchase-orders", label: "Purchase Orders", icon: ShoppingCart, allowedRoles: ["admin", "procurement_officer"] },
   { to: "/documents", label: "Documents", icon: FileText, allowedRoles: ["admin", "project_manager", "site_manager", "accountant"] },
@@ -50,7 +50,8 @@ const NAV: NavItem[] = [
   { to: "/staff", label: "Staff", icon: Users, allowedRoles: ["admin"] },
   { to: "/contacts", label: "Contacts", icon: ContactIcon, allowedRoles: ["admin", "project_manager"] },
   { to: "/variations", label: "Variation Orders", icon: GitBranch, allowedRoles: ["admin", "project_manager"] },
-  { to: "/notifications", label: "Notifications", icon: Bell, allowedRoles: ["admin", "project_manager", "site_manager", "accountant", "procurement_officer"] },
+  { to: "/notifications", label: "Notifications", icon: Bell, allowedRoles: ["admin", "project_manager", "site_manager", "accountant", "procurement_officer", "head_quantity_surveyor"] },
+
   { to: "/recently-deleted", label: "Recently Deleted", icon: Trash2, allowedRoles: ["admin"] },
 ];
 

@@ -117,15 +117,17 @@ function AdminDashboard() {
   const labs = labLines.filter((l: any) => sheetIds.has(l.cost_sheet_id));
   const ovhs = ovhLines.filter((l: any) => sheetIds.has(l.cost_sheet_id));
 
+  // Expenditure = PAID requisitions only
+  const paidReqs = reqs.filter((r: any) => r.status === "Paid");
+
   // Summary
   const totalContract = projects.reduce((a: number, p: any) => a + num(p.contract_value), 0);
-  const totalSpent =
-    mats.reduce((a: number, l: any) => a + num(l.actual_purchased_cost), 0) +
-    labs.reduce((a: number, l: any) => a + num(l.actual_cost), 0) +
-    ovhs.reduce((a: number, l: any) => a + num(l.actual_amount), 0);
+  const totalSpent = paidReqs.reduce((a: number, r: any) => a + num(r.total_amount), 0);
   const activeProjects = projects.filter((p: any) => p.status === "Active").length;
-  const pendingSheetsAll = sheets.filter((s: any) => ["Draft", "Confirmed", "Budget Validated"].includes(s.status));
-  const pendingReqsAll = reqs.filter((r: any) => r.status === "Pending Approval");
+  const pendingSheetsAll = sheets.filter((s: any) => ["Draft", "Submitted for Vetting", "Vetted"].includes(s.status));
+  const pendingReqsAll = reqs.filter((r: any) =>
+    ["Pending Vetting", "Pending PO", "MD Approval", "Payment Schedule", "Payment Confirmed"].includes(r.status),
+  );
   const pendingApprovals = pendingSheetsAll.length + pendingReqsAll.length;
 
   // Monthly expenditure across the selected range (max 12 buckets)
@@ -139,19 +141,12 @@ function AdminDashboard() {
       cur.setMonth(cur.getMonth() + 1);
     }
   }
-  const bySheetMonth = new Map<string, string>();
-  sheets.forEach((s: any) => {
-    const d = new Date(s.sheet_date ?? s.created_at);
-    bySheetMonth.set(s.id, monthKey(new Date(d.getFullYear(), d.getMonth(), 1)));
-  });
   const monthlyMap: Record<string, number> = Object.fromEntries(months.map((m) => [m.key, 0]));
-  const addLine = (sheetId: string, amount: number) => {
-    const k = bySheetMonth.get(sheetId);
-    if (k && k in monthlyMap) monthlyMap[k] += amount;
-  };
-  mats.forEach((l: any) => addLine(l.cost_sheet_id, num(l.actual_purchased_cost)));
-  labs.forEach((l: any) => addLine(l.cost_sheet_id, num(l.actual_cost)));
-  ovhs.forEach((l: any) => addLine(l.cost_sheet_id, num(l.actual_amount)));
+  paidReqs.forEach((r: any) => {
+    const d = new Date(r.created_at);
+    const k = monthKey(new Date(d.getFullYear(), d.getMonth(), 1));
+    if (k in monthlyMap) monthlyMap[k] += num(r.total_amount);
+  });
   const monthlyData = months.map((m) => ({
     month: m.key,
     spend: Math.round(monthlyMap[m.key]),
@@ -159,19 +154,14 @@ function AdminDashboard() {
     to: iso(new Date(m.date.getFullYear(), m.date.getMonth() + 1, 0)),
   }));
 
-  // Budget vs actual per project
+  // Budget vs actual (paid expenditure) per project
   const budgetByProject = new Map<string, number>();
   costCodes.forEach((c: any) => budgetByProject.set(c.project_id, (budgetByProject.get(c.project_id) ?? 0) + num(c.budgeted_amount)));
-  const sheetToProject = new Map<string, string>();
-  sheets.forEach((s: any) => sheetToProject.set(s.id, s.project_id));
   const actualByProject = new Map<string, number>();
-  const addProjLine = (sheetId: string, amount: number) => {
-    const p = sheetToProject.get(sheetId); if (!p) return;
-    actualByProject.set(p, (actualByProject.get(p) ?? 0) + amount);
-  };
-  mats.forEach((l: any) => addProjLine(l.cost_sheet_id, num(l.actual_purchased_cost)));
-  labs.forEach((l: any) => addProjLine(l.cost_sheet_id, num(l.actual_cost)));
-  ovhs.forEach((l: any) => addProjLine(l.cost_sheet_id, num(l.actual_amount)));
+  paidReqs.forEach((r: any) => {
+    if (!r.project_id) return;
+    actualByProject.set(r.project_id, (actualByProject.get(r.project_id) ?? 0) + num(r.total_amount));
+  });
 
   const bvaData = projects.map((p: any) => ({
     id: p.id,
@@ -179,6 +169,7 @@ function AdminDashboard() {
     budget: Math.round(budgetByProject.get(p.id) ?? num(p.contract_value)),
     actual: Math.round(actualByProject.get(p.id) ?? 0),
   })).slice(0, 8);
+
 
   // Project status pie
   const statuses = ["Active", "Completed", "On Hold", "Handover"];
@@ -268,7 +259,7 @@ function AdminDashboard() {
         <Stat icon={FolderKanban} label="Total Contract Value" value={fmtNGN(totalContract)} onClick={() => navigate({ to: "/projects" })} />
         <Stat icon={FileSpreadsheet} label="Total Amount Spent" value={fmtNGN(totalSpent)} onClick={() => navigate({ to: "/cost-sheets", search: { from, to } })} />
         <Stat icon={CheckCircle2} label="Active Projects" value={String(activeProjects)} onClick={() => navigate({ to: "/projects", search: { status: "Active" } })} />
-        <Stat icon={ClipboardList} label="Pending Approvals" value={String(pendingApprovals)} onClick={() => navigate({ to: "/requisitions", search: { status: "Pending Approval" } })} />
+        <Stat icon={ClipboardList} label="Pending Approvals" value={String(pendingApprovals)} onClick={() => navigate({ to: "/requisitions", search: { status: "MD Approval" } })} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">

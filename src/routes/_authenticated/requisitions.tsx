@@ -22,6 +22,9 @@ import { ApprovalPanel } from "@/components/approvals";
 import { Attachments } from "@/components/attachments";
 import { Chatter } from "@/components/chatter";
 import { SupplierComparison } from "@/components/supplier-comparison";
+import { PaymentSchedule } from "@/components/payment-schedule";
+import { ApprovalHistory } from "@/components/approval-history";
+import { requisitionSteps, allowed, useApprovedBudgetItems, isInBudget } from "@/lib/workflow";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/requisitions")({
@@ -36,7 +39,7 @@ export const Route = createFileRoute("/_authenticated/requisitions")({
 });
 
 const TYPES = ["Materials", "Labour", "Equipment", "Services"] as const;
-const STATUSES = ["Draft", "Pending Approval", "Approved", "Rejected", "Fulfilled"] as const;
+
 
 export async function downloadRequisitionPdf(req: any, generatedBy?: string) {
   const [{ data: lines }, { data: sups }] = await Promise.all([
@@ -60,7 +63,7 @@ function RequisitionsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const { status, project, from, to } = Route.useSearch();
-  const { user } = useSession();
+  const { user, roles } = useSession();
 
   const { data: reqs } = useQuery({
     queryKey: ["requisitions"],
@@ -79,6 +82,9 @@ function RequisitionsPage() {
 
   async function setStatus(id: string, status: string) {
     const row = (reqs ?? []).find((r: any) => r.id === id);
+    const step = requisitionSteps(row?.status ?? "Draft", row?.type ?? "Materials").find((s) => s.to === status);
+    if (!step) return toast.error("Invalid workflow transition");
+    if (!allowed(step, roles)) return toast.error(step.hint);
     const { error } = await supabase.from("requisitions").update({ status }).eq("id", id);
     if (error) return toast.error(error.message);
     await logActivity(`status → ${status}`, "requisitions", id, row?.number, { to: status });
@@ -87,6 +93,7 @@ function RequisitionsPage() {
     qc.invalidateQueries({ queryKey: ["purchase_orders"] });
     qc.invalidateQueries({ queryKey: ["notifications"] });
   }
+
 
 
   return (
@@ -125,12 +132,21 @@ function RequisitionsPage() {
                   <TableCell>{r.projects?.name ?? "—"}</TableCell>
                   <TableCell>{r.type}</TableCell>
                   <TableCell>{fmtNGN(r.total_amount)}</TableCell>
-                  <TableCell><Badge variant="secondary">{r.status}</Badge></TableCell>
+                  <TableCell><Badge variant={r.status === "Rejected" ? "destructive" : r.status === "Paid" ? "default" : "secondary"}>{r.status}</Badge></TableCell>
                   <TableCell className="flex items-center gap-1">
-                    <Select value={r.status} onValueChange={(v) => setStatus(r.id, v)}>
-                      <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
-                      <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                    </Select>
+                    {requisitionSteps(r.status, r.type).map((s) => (
+                      <Button
+                        key={s.to}
+                        size="sm"
+                        variant={s.to === "Rejected" ? "destructive" : "outline"}
+                        disabled={!allowed(s, roles)}
+                        title={allowed(s, roles) ? s.label : s.hint}
+                        onClick={() => setStatus(r.id, s.to)}
+                      >
+                        {s.label}
+                      </Button>
+                    ))}
+
                     <Button size="icon" variant="ghost" title="Export PDF" onClick={() => downloadRequisitionPdf(r, user?.email ?? undefined)}>
                       <FileDown className="h-4 w-4" />
                     </Button>
@@ -152,13 +168,36 @@ function RequisitionsPage() {
 
 function RequisitionDialog({ initial, onClose }: { initial: any | null; onClose: () => void }) {
   const qc = useQueryClient();
-  const { user: dialogUser } = useSession();
+  const { user: dialogUser, roles } = useSession();
   const [form, setForm] = useState<any>(initial ?? {
     project_id: "", cost_code_id: "", type: "Materials", department: "",
     deadline: "", is_change_order: false, status: "Draft", notes: "",
   });
   const [lines, setLines] = useState<any[]>([]);
   const [reqId, setReqId] = useState<string | null>(initial?.id ?? null);
+  const { data: budgetItems = [] } = useApprovedBudgetItems(form.project_id || null);
+
+  async function advance(to: string) {
+    if (!reqId) return;
+    const step = requisitionSteps(form.status, form.type).find((s) => s.to === to);
+    if (!step) return;
+    if (!allowed(step, roles)) return toast.error(step.hint);
+    if (form.status === "Draft") {
+      const offending = lines.filter((l) => l.item_name && !isInBudget(budgetItems, l.item_name));
+      if (!lines.length) return toast.error("Add at least one line item");
+      if (offending.length) return toast.error(`Item not in approved budget: ${offending[0].item_name}`);
+    }
+    const { error } = await supabase.from("requisitions").update({ status: to }).eq("id", reqId);
+    if (error) return toast.error(error.message);
+    setForm((f: any) => ({ ...f, status: to }));
+    await logActivity(`status → ${to}`, "requisitions", reqId, initial?.number, { to });
+    toast.success(`Status → ${to}`);
+    qc.invalidateQueries({ queryKey: ["requisitions"] });
+    qc.invalidateQueries({ queryKey: ["approval_history", reqId] });
+    qc.invalidateQueries({ queryKey: ["purchase_orders"] });
+    qc.invalidateQueries({ queryKey: ["notifications"] });
+  }
+
 
   const { data: projects } = useQuery({
     queryKey: ["projects"],
@@ -254,23 +293,51 @@ function RequisitionDialog({ initial, onClose }: { initial: any | null; onClose:
         </div>
         <div className="space-y-2"><Label>Department</Label><Input value={form.department ?? ""} onChange={(e) => setForm({ ...form, department: e.target.value })} /></div>
         <div className="space-y-2"><Label>Deadline</Label><Input type="date" value={form.deadline ?? ""} onChange={(e) => setForm({ ...form, deadline: e.target.value })} /></div>
-        <div className="space-y-2"><Label>Status</Label>
-          <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-          </Select>
+        <div className="space-y-2 md:col-span-3">
+          <Label>Workflow</Label>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={form.status === "Rejected" ? "destructive" : "secondary"}>{form.status}</Badge>
+            {reqId ? (
+              requisitionSteps(form.status, form.type).map((s) => (
+                <Button
+                  key={s.to}
+                  size="sm"
+                  variant={s.to === "Rejected" ? "destructive" : "default"}
+                  disabled={!allowed(s, roles)}
+                  title={allowed(s, roles) ? s.label : s.hint}
+                  onClick={() => advance(s.to)}
+                >
+                  {s.label}
+                </Button>
+              ))
+            ) : (
+              <span className="text-xs text-muted-foreground">Save the requisition to start the workflow.</span>
+            )}
+          </div>
         </div>
+
         <label className="flex items-center gap-2 md:col-span-3 text-sm">
           <Checkbox checked={!!form.is_change_order} onCheckedChange={(v) => setForm({ ...form, is_change_order: !!v })} />
           This is a Change Order
         </label>
       </div>
 
+      <datalist id="approved-budget-items">
+        {budgetItems.map((i) => <option key={i.name} value={i.name}>{i.source}</option>)}
+      </datalist>
+
+      {form.project_id && budgetItems.length === 0 && (
+        <div className="rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 p-3 text-sm flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4" /> This project has no approved budget yet — no items can be requisitioned.
+        </div>
+      )}
+
       {budgetWarn && (
         <div className="rounded-md bg-destructive/10 text-destructive p-3 text-sm flex items-center gap-2">
           <AlertTriangle className="h-4 w-4" /> Requisition total {fmtNGN(total)} exceeds cost-code budget {fmtNGN(codeInfo?.budgeted_amount)}.
         </div>
       )}
+
 
       <div className="border rounded-lg overflow-x-auto">
         <Table>
@@ -284,8 +351,20 @@ function RequisitionDialog({ initial, onClose }: { initial: any | null; onClose:
             {lines.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-4">No lines. {reqId ? "" : "Save the header first."}</TableCell></TableRow>}
             {lines.map((l) => (
               <TableRow key={l.id}>
-                <TableCell className="p-1"><Input className="h-8" value={l.item_name ?? ""} onChange={(e) => updateLine(l.id, { item_name: e.target.value })} /></TableCell>
+                <TableCell className="p-1">
+                  <Input
+                    className={"h-8 " + (l.item_name && !isInBudget(budgetItems, l.item_name) ? "border-destructive" : "")}
+                    list="approved-budget-items"
+                    value={l.item_name ?? ""}
+                    placeholder="Approved budget item"
+                    onChange={(e) => updateLine(l.id, { item_name: e.target.value })}
+                  />
+                  {l.item_name && !isInBudget(budgetItems, l.item_name) && (
+                    <p className="text-[11px] text-destructive mt-1">Item not in approved budget</p>
+                  )}
+                </TableCell>
                 <TableCell className="p-1"><Input className="h-8 w-20" type="number" value={l.qty ?? 0} onChange={(e) => updateLine(l.id, { qty: Number(e.target.value) })} /></TableCell>
+
                 <TableCell className="p-1"><Input className="h-8 w-16" value={l.unit ?? ""} onChange={(e) => updateLine(l.id, { unit: e.target.value })} /></TableCell>
                 <TableCell className="p-1"><Input className="h-8 w-28" type="number" value={l.unit_cost ?? 0} onChange={(e) => updateLine(l.id, { unit_cost: Number(e.target.value) })} /></TableCell>
                 <TableCell className="p-1 text-sm">{fmtNGN(l.total)}</TableCell>
@@ -310,10 +389,21 @@ function RequisitionDialog({ initial, onClose }: { initial: any | null; onClose:
         <Tabs defaultValue="suppliers" className="mt-2">
           <TabsList>
             <TabsTrigger value="suppliers">Supplier Comparison</TabsTrigger>
+            <TabsTrigger value="payment">Payment Schedule</TabsTrigger>
+            <TabsTrigger value="history">Workflow history</TabsTrigger>
             <TabsTrigger value="approvals">Approvals</TabsTrigger>
             <TabsTrigger value="attachments">Attachments</TabsTrigger>
             <TabsTrigger value="discussion">Discussion</TabsTrigger>
           </TabsList>
+          <TabsContent value="payment">
+            <PaymentSchedule requisitionId={reqId} projectId={form.project_id || null} defaultAmount={total} />
+          </TabsContent>
+          <TabsContent value="history">
+            <div className="border rounded-lg bg-card p-4">
+              <ApprovalHistory requisitionId={reqId} />
+            </div>
+          </TabsContent>
+
           <TabsContent value="suppliers">
             <SupplierComparison requisitionId={reqId} recordLabel={initial?.number ?? "requisition"} />
           </TabsContent>

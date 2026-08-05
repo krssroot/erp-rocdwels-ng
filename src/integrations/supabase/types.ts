@@ -50,6 +50,63 @@ export type Database = {
         }
         Relationships: []
       }
+      approval_history: {
+        Row: {
+          action: string
+          budget_id: string | null
+          by_email: string | null
+          by_user_id: string | null
+          created_at: string
+          entity_type: string
+          from_status: string | null
+          id: string
+          notes: string | null
+          requisition_id: string | null
+          to_status: string | null
+        }
+        Insert: {
+          action: string
+          budget_id?: string | null
+          by_email?: string | null
+          by_user_id?: string | null
+          created_at?: string
+          entity_type?: string
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          requisition_id?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          action?: string
+          budget_id?: string | null
+          by_email?: string | null
+          by_user_id?: string | null
+          created_at?: string
+          entity_type?: string
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          requisition_id?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_history_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "cost_sheets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_history_requisition_id_fkey"
+            columns: ["requisition_id"]
+            isOneToOne: false
+            referencedRelation: "requisitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       approval_steps: {
         Row: {
           approver_email: string | null
@@ -467,6 +524,8 @@ export type Database = {
       cost_sheets: {
         Row: {
           analytic_account: string | null
+          approved_at: string | null
+          approved_by: string | null
           cost_code_id: string | null
           created_at: string
           created_by: string | null
@@ -480,14 +539,23 @@ export type Database = {
           notes: string | null
           number: string
           project_id: string
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
           sale_reference: string | null
           sheet_date: string | null
           status: string
+          submitted_at: string | null
+          submitted_by: string | null
           title: string | null
           updated_at: string
+          vetted_at: string | null
+          vetted_by: string | null
         }
         Insert: {
           analytic_account?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           cost_code_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -501,14 +569,23 @@ export type Database = {
           notes?: string | null
           number?: string
           project_id: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
           sale_reference?: string | null
           sheet_date?: string | null
           status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
           title?: string | null
           updated_at?: string
+          vetted_at?: string | null
+          vetted_by?: string | null
         }
         Update: {
           analytic_account?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           cost_code_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -522,11 +599,18 @@ export type Database = {
           notes?: string | null
           number?: string
           project_id?: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
           sale_reference?: string | null
           sheet_date?: string | null
           status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
           title?: string | null
           updated_at?: string
+          vetted_at?: string | null
+          vetted_by?: string | null
         }
         Relationships: [
           {
@@ -733,6 +817,75 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      payment_schedules: {
+        Row: {
+          amount: number
+          bank: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          due_date: string | null
+          id: string
+          notes: string | null
+          project_id: string | null
+          requisition_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          bank?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          project_id?: string | null
+          requisition_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          bank?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          project_id?: string | null
+          requisition_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_schedules_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_schedules_requisition_id_fkey"
+            columns: ["requisition_id"]
+            isOneToOne: false
+            referencedRelation: "requisitions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {
@@ -1063,13 +1216,28 @@ export type Database = {
           employee_id: string | null
           id: string
           is_change_order: boolean | null
+          md_approved_at: string | null
+          md_approved_by: string | null
           notes: string | null
           number: string
+          paid_at: string | null
+          paid_by: string | null
+          po_created_at: string | null
+          po_created_by: string | null
           project_id: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          scheduled_at: string | null
+          scheduled_by: string | null
           status: string
+          submitted_at: string | null
+          submitted_by: string | null
           total_amount: number | null
           type: string
           updated_at: string
+          vetted_at: string | null
+          vetted_by: string | null
         }
         Insert: {
           cost_code_id?: string | null
@@ -1082,13 +1250,28 @@ export type Database = {
           employee_id?: string | null
           id?: string
           is_change_order?: boolean | null
+          md_approved_at?: string | null
+          md_approved_by?: string | null
           notes?: string | null
           number?: string
+          paid_at?: string | null
+          paid_by?: string | null
+          po_created_at?: string | null
+          po_created_by?: string | null
           project_id?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          scheduled_at?: string | null
+          scheduled_by?: string | null
           status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
           total_amount?: number | null
           type?: string
           updated_at?: string
+          vetted_at?: string | null
+          vetted_by?: string | null
         }
         Update: {
           cost_code_id?: string | null
@@ -1101,13 +1284,28 @@ export type Database = {
           employee_id?: string | null
           id?: string
           is_change_order?: boolean | null
+          md_approved_at?: string | null
+          md_approved_by?: string | null
           notes?: string | null
           number?: string
+          paid_at?: string | null
+          paid_by?: string | null
+          po_created_at?: string | null
+          po_created_by?: string | null
           project_id?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          scheduled_at?: string | null
+          scheduled_by?: string | null
           status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
           total_amount?: number | null
           type?: string
           updated_at?: string
+          vetted_at?: string | null
+          vetted_by?: string | null
         }
         Relationships: [
           {
@@ -1519,6 +1717,7 @@ export type Database = {
         | "site_manager"
         | "accountant"
         | "procurement_officer"
+        | "head_quantity_surveyor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1652,6 +1851,7 @@ export const Constants = {
         "site_manager",
         "accountant",
         "procurement_officer",
+        "head_quantity_surveyor",
       ],
     },
   },

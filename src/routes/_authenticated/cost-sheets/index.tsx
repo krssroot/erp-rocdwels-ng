@@ -25,7 +25,9 @@ export const Route = createFileRoute("/_authenticated/cost-sheets/")({
   component: CostSheetsPage,
 });
 
-const STATUSES = ["Draft", "Confirmed", "Budget Validated", "Approved", "Done"] as const;
+import { BUDGET_STATUSES } from "@/lib/workflow";
+
+const STATUSES = BUDGET_STATUSES;
 
 function CostSheetsPage() {
   const { data, isLoading } = useList<any>("cost_sheets", { select: "*, projects(name)", order: "created_at" });

@@ -21,13 +21,16 @@ import { logActivity } from "@/lib/activity";
 import { ApprovalPanel } from "@/components/approvals";
 import { Attachments } from "@/components/attachments";
 import { Chatter } from "@/components/chatter";
+import { ApprovalHistory } from "@/components/approval-history";
+import { BUDGET_STATUSES, budgetSteps, allowed } from "@/lib/workflow";
 
 export const Route = createFileRoute("/_authenticated/cost-sheets/$id")({
   ssr: false,
   component: CostSheetDetail,
 });
 
-const STATUSES = ["Draft", "Confirmed", "Budget Validated", "Approved", "Done"] as const;
+const STATUSES = BUDGET_STATUSES;
+
 const CATEGORIES = ["Materials", "Labour", "Equipment", "Overhead", "Subcontractor"] as const;
 const DEFAULT_UOMS = ["bags", "tons", "kg", "meters", "pieces", "litres"];
 
@@ -112,7 +115,7 @@ function CostSheetDetail() {
         .select("total_amount,status")
         .eq("cost_code_id", hdr.cost_code_id)
         .is("deleted_at", null);
-      return (data ?? []).filter((r: any) => ["Pending Approval", "Approved"].includes(r.status))
+      return (data ?? []).filter((r: any) => ["Pending Vetting", "Pending PO", "MD Approval", "Payment Schedule", "Payment Confirmed"].includes(r.status))
         .reduce((a: number, r: any) => a + num(r.total_amount), 0);
     },
     enabled: !!hdr.cost_code_id,
@@ -165,28 +168,25 @@ function CostSheetDetail() {
     qc.invalidateQueries({ queryKey: ["cost_sheets", id] });
   }
 
-  async function updateStatus(v: string) {
+  async function updateStatus(v: string, reason?: string) {
     if (!sheet) return;
-    const from = sheet.status, to = v, uid = user?.id;
-    if (from === "Draft" && to === "Confirmed" && sheet.created_by && sheet.created_by !== uid && !roles.includes("admin"))
-      return toast.error("Only the creator can confirm");
-    if (from === "Confirmed" && to === "Budget Validated" && !roles.includes("accountant") && !roles.includes("admin"))
-      return toast.error("Only accountants can validate budget");
-    if (from === "Budget Validated" && to === "Approved" && !roles.includes("project_manager") && !roles.includes("admin"))
-      return toast.error("Only project managers can approve");
-    if (from === "Approved" && to === "Done" && !roles.includes("admin") && !roles.includes("accountant"))
-      return toast.error("Only admin or accountant can mark done");
+    const from = sheet.status, to = v;
+    const step = budgetSteps(from).find((s) => s.to === to);
+    if (!step) return toast.error(`Not a valid transition from ${from}`);
+    if (!allowed(step, roles)) return toast.error(step.hint);
 
-    const { error } = await supabase.from("cost_sheets").update({ status: v }).eq("id", id);
+    const patch: any = { status: v };
+    if (to === "Rejected") patch.rejection_reason = reason ?? null;
+    const { error } = await supabase.from("cost_sheets").update(patch).eq("id", id);
     if (error) return toast.error(error.message);
     await logActivity(`status → ${to}`, "cost_sheets", id, sheet.number ?? sheet.title ?? undefined, { from, to });
+    toast.success(`Budget ${to}`);
     qc.invalidateQueries({ queryKey: ["cost_sheets"] });
-
-    if (to === "Approved" && sheet.cost_code_id) {
-      await supabase.from("cost_codes").update({ actual_amount: grandAct }).eq("id", sheet.cost_code_id);
-      qc.invalidateQueries({ queryKey: ["cost_codes"] });
-    }
+    qc.invalidateQueries({ queryKey: ["cost_sheets", id] });
+    qc.invalidateQueries({ queryKey: ["approval_history", id] });
+    qc.invalidateQueries({ queryKey: ["notifications"] });
   }
+
 
   if (!sheet) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
@@ -215,11 +215,22 @@ function CostSheetDetail() {
             })}>
               <FileDown className="h-4 w-4 mr-1" /> Export PDF
             </Button>
-            <Badge variant="secondary">{sheet.status}</Badge>
-            <Select value={sheet.status} onValueChange={updateStatus}>
-              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-              <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-            </Select>
+            <Badge variant={sheet.status === "Rejected" ? "destructive" : "secondary"}>{sheet.status}</Badge>
+            {budgetSteps(sheet.status).map((s) => (
+              <Button
+                key={s.to}
+                size="sm"
+                variant={s.to === "Rejected" ? "destructive" : "default"}
+                disabled={!allowed(s, roles)}
+                title={allowed(s, roles) ? s.label : s.hint}
+                onClick={() =>
+                  updateStatus(s.to, s.to === "Rejected" ? window.prompt("Reason for rejection") ?? undefined : undefined)
+                }
+              >
+                {s.label}
+              </Button>
+            ))}
+
           </div>
         }
       />
@@ -295,9 +306,29 @@ function CostSheetDetail() {
           <TabsTrigger value="overhead">Overhead</TabsTrigger>
           <TabsTrigger value="approvals">Approvals</TabsTrigger>
           <TabsTrigger value="attachments">Attachments</TabsTrigger>
+          <TabsTrigger value="history">Workflow history</TabsTrigger>
           <TabsTrigger value="discussion">Discussion</TabsTrigger>
         </TabsList>
+        <TabsContent value="history">
+          <div className="border rounded-lg bg-card p-4">
+            <div className="mb-3 flex flex-wrap gap-2 text-xs">
+              {STATUSES.filter((s) => s !== "Rejected").map((s, i) => (
+                <span
+                  key={s}
+                  className={
+                    "px-2 py-1 rounded-full border " +
+                    (s === sheet.status ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground")
+                  }
+                >
+                  {i + 1}. {s}
+                </span>
+              ))}
+            </div>
+            <ApprovalHistory budgetId={id} />
+          </div>
+        </TabsContent>
         <TabsContent value="materials"><LinesTable cols={MAT_COLS} api={mat} totalsKeys={["planned_amount", "actual_purchased_cost"]} /></TabsContent>
+
         <TabsContent value="labour"><LinesTable cols={LAB_COLS} api={lab} totalsKeys={["planned_cost", "actual_cost"]} /></TabsContent>
         <TabsContent value="overhead"><LinesTable cols={OVH_COLS} api={ovh} totalsKeys={["planned_amount", "actual_amount"]} /></TabsContent>
         <TabsContent value="approvals">
