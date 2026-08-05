@@ -168,28 +168,25 @@ function CostSheetDetail() {
     qc.invalidateQueries({ queryKey: ["cost_sheets", id] });
   }
 
-  async function updateStatus(v: string) {
+  async function updateStatus(v: string, reason?: string) {
     if (!sheet) return;
-    const from = sheet.status, to = v, uid = user?.id;
-    if (from === "Draft" && to === "Confirmed" && sheet.created_by && sheet.created_by !== uid && !roles.includes("admin"))
-      return toast.error("Only the creator can confirm");
-    if (from === "Confirmed" && to === "Budget Validated" && !roles.includes("accountant") && !roles.includes("admin"))
-      return toast.error("Only accountants can validate budget");
-    if (from === "Budget Validated" && to === "Approved" && !roles.includes("project_manager") && !roles.includes("admin"))
-      return toast.error("Only project managers can approve");
-    if (from === "Approved" && to === "Done" && !roles.includes("admin") && !roles.includes("accountant"))
-      return toast.error("Only admin or accountant can mark done");
+    const from = sheet.status, to = v;
+    const step = budgetSteps(from).find((s) => s.to === to);
+    if (!step) return toast.error(`Not a valid transition from ${from}`);
+    if (!allowed(step, roles)) return toast.error(step.hint);
 
-    const { error } = await supabase.from("cost_sheets").update({ status: v }).eq("id", id);
+    const patch: any = { status: v };
+    if (to === "Rejected") patch.rejection_reason = reason ?? null;
+    const { error } = await supabase.from("cost_sheets").update(patch).eq("id", id);
     if (error) return toast.error(error.message);
     await logActivity(`status → ${to}`, "cost_sheets", id, sheet.number ?? sheet.title ?? undefined, { from, to });
+    toast.success(`Budget ${to}`);
     qc.invalidateQueries({ queryKey: ["cost_sheets"] });
-
-    if (to === "Approved" && sheet.cost_code_id) {
-      await supabase.from("cost_codes").update({ actual_amount: grandAct }).eq("id", sheet.cost_code_id);
-      qc.invalidateQueries({ queryKey: ["cost_codes"] });
-    }
+    qc.invalidateQueries({ queryKey: ["cost_sheets", id] });
+    qc.invalidateQueries({ queryKey: ["approval_history", id] });
+    qc.invalidateQueries({ queryKey: ["notifications"] });
   }
+
 
   if (!sheet) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
