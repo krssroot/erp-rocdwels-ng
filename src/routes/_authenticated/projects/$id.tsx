@@ -78,12 +78,14 @@ function ProjectDetail() {
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-4 mb-6">
+      <div className="grid gap-4 md:grid-cols-5 mb-6">
         <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Contract value</p><p className="text-lg font-bold">{fmtNGN(project.contract_value)}</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Expenditure (paid)</p><p className="text-lg font-bold text-primary">{fmtNGN((reqs ?? []).filter((r: any) => r.status === "Paid").reduce((a: number, r: any) => a + Number(r.total_amount ?? 0), 0))}</p></CardContent></Card>
         <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Status</p><Badge>{project.status}</Badge></CardContent></Card>
         <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Progress</p><div className="flex items-center gap-2"><Progress value={Number(project.percent_complete ?? 0)} /> <span className="text-sm">{Number(project.percent_complete ?? 0).toFixed(0)}%</span></div></CardContent></Card>
         <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Timeline</p><p className="text-sm">{project.start_date ?? "—"} → {project.end_date ?? "—"}</p></CardContent></Card>
       </div>
+
 
       <Tabs defaultValue="overview">
         <TabsList>
