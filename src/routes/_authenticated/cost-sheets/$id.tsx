@@ -215,11 +215,22 @@ function CostSheetDetail() {
             })}>
               <FileDown className="h-4 w-4 mr-1" /> Export PDF
             </Button>
-            <Badge variant="secondary">{sheet.status}</Badge>
-            <Select value={sheet.status} onValueChange={updateStatus}>
-              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-              <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-            </Select>
+            <Badge variant={sheet.status === "Rejected" ? "destructive" : "secondary"}>{sheet.status}</Badge>
+            {budgetSteps(sheet.status).map((s) => (
+              <Button
+                key={s.to}
+                size="sm"
+                variant={s.to === "Rejected" ? "destructive" : "default"}
+                disabled={!allowed(s, roles)}
+                title={allowed(s, roles) ? s.label : s.hint}
+                onClick={() =>
+                  updateStatus(s.to, s.to === "Rejected" ? window.prompt("Reason for rejection") ?? undefined : undefined)
+                }
+              >
+                {s.label}
+              </Button>
+            ))}
+
           </div>
         }
       />
