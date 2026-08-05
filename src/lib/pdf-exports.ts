@@ -245,11 +245,11 @@ export function exportRequisitionPdf(args: {
     [
       ["Raised", "Originator", "Completed", req.created_at ? new Date(req.created_at).toLocaleDateString("en-NG") : "—"],
       ["Submitted for Approval", "Site / Project Manager",
-        ["Pending Approval", "Approved", "Rejected", "Fulfilled"].includes(req.status) ? "Completed" : "Pending", "—"],
+        req.status !== "Draft" ? "Completed" : "Pending", "—"],
       ["Approval", "Project Manager / Procurement",
-        req.status === "Approved" || req.status === "Fulfilled" ? "Approved" : req.status === "Rejected" ? "Rejected" : "Pending",
+        ["Payment Schedule", "Payment Confirmed", "Paid"].includes(req.status) ? "Approved" : req.status === "Rejected" ? "Rejected" : "Pending",
         req.updated_at ? new Date(req.updated_at).toLocaleDateString("en-NG") : "—"],
-      ["Fulfilment", "Procurement", req.status === "Fulfilled" ? "Completed" : "Pending", "—"],
+      ["Payment", "Accountant", req.status === "Paid" ? "PAID" : req.status === "Payment Confirmed" ? "Confirmed" : "Pending", "—"],
     ], y);
 
   if (req.notes) {

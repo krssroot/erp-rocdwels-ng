@@ -259,7 +259,7 @@ function AdminDashboard() {
         <Stat icon={FolderKanban} label="Total Contract Value" value={fmtNGN(totalContract)} onClick={() => navigate({ to: "/projects" })} />
         <Stat icon={FileSpreadsheet} label="Total Amount Spent" value={fmtNGN(totalSpent)} onClick={() => navigate({ to: "/cost-sheets", search: { from, to } })} />
         <Stat icon={CheckCircle2} label="Active Projects" value={String(activeProjects)} onClick={() => navigate({ to: "/projects", search: { status: "Active" } })} />
-        <Stat icon={ClipboardList} label="Pending Approvals" value={String(pendingApprovals)} onClick={() => navigate({ to: "/requisitions", search: { status: "Pending Approval" } })} />
+        <Stat icon={ClipboardList} label="Pending Approvals" value={String(pendingApprovals)} onClick={() => navigate({ to: "/requisitions", search: { status: "MD Approval" } })} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">

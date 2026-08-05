@@ -115,7 +115,7 @@ function CostSheetDetail() {
         .select("total_amount,status")
         .eq("cost_code_id", hdr.cost_code_id)
         .is("deleted_at", null);
-      return (data ?? []).filter((r: any) => ["Pending Approval", "Approved"].includes(r.status))
+      return (data ?? []).filter((r: any) => ["Pending Vetting", "Pending PO", "MD Approval", "Payment Schedule", "Payment Confirmed"].includes(r.status))
         .reduce((a: number, r: any) => a + num(r.total_amount), 0);
     },
     enabled: !!hdr.cost_code_id,

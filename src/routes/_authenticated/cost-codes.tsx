@@ -49,7 +49,7 @@ function CostCodesPage() {
   });
 
   function computed(codeId: string, budgeted: number) {
-    const committed = (reqs ?? []).filter((r: any) => r.cost_code_id === codeId && ["Pending Approval", "Approved"].includes(r.status)).reduce((a, r: any) => a + Number(r.total_amount ?? 0), 0);
+    const committed = (reqs ?? []).filter((r: any) => r.cost_code_id === codeId && ["Pending Vetting", "Pending PO", "MD Approval", "Payment Schedule", "Payment Confirmed"].includes(r.status)).reduce((a, r: any) => a + Number(r.total_amount ?? 0), 0);
     const actual = (sheets ?? []).filter((s: any) => s.cost_sheets?.cost_code_id === codeId && s.cost_sheets?.status === "Approved").reduce((a: number, s: any) => a + Number(s.actual_purchased_cost ?? 0), 0);
     return { committed, actual, remaining: Number(budgeted ?? 0) - committed - actual };
   }
