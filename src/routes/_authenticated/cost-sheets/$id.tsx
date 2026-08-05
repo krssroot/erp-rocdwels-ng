@@ -21,13 +21,16 @@ import { logActivity } from "@/lib/activity";
 import { ApprovalPanel } from "@/components/approvals";
 import { Attachments } from "@/components/attachments";
 import { Chatter } from "@/components/chatter";
+import { ApprovalHistory } from "@/components/approval-history";
+import { BUDGET_STATUSES, budgetSteps, allowed } from "@/lib/workflow";
 
 export const Route = createFileRoute("/_authenticated/cost-sheets/$id")({
   ssr: false,
   component: CostSheetDetail,
 });
 
-const STATUSES = ["Draft", "Confirmed", "Budget Validated", "Approved", "Done"] as const;
+const STATUSES = BUDGET_STATUSES;
+
 const CATEGORIES = ["Materials", "Labour", "Equipment", "Overhead", "Subcontractor"] as const;
 const DEFAULT_UOMS = ["bags", "tons", "kg", "meters", "pieces", "litres"];
 
