@@ -253,7 +253,13 @@ function RequisitionDialog({ initial, onClose }: { initial: any | null; onClose:
     line.total = Number(line.qty ?? 0) * Number(line.unit_cost ?? 0);
     if ("qty" in patch || "unit_cost" in patch) patch.total = line.total;
     setLines(newLines);
+    // Never persist an item that isn't in the approved budget
+    if ("item_name" in patch && patch.item_name && !isInBudget(budgetItems, patch.item_name)) return;
+    if (!("item_name" in patch) && line.item_name && !isInBudget(budgetItems, line.item_name)) return;
     await supabase.from("requisition_lines").update(patch).eq("id", id);
+  }
+  function checkItem(name: string) {
+    if (name && !isInBudget(budgetItems, name)) toast.error("Item not in approved budget");
   }
   async function removeLine(id: string) {
     setLines((l) => l.filter((x) => x.id !== id));
