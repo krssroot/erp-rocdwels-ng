@@ -324,7 +324,7 @@ function CostSheetDetail() {
                 </span>
               ))}
             </div>
-            <ApprovalHistory budgetId={id} />
+            <ApprovalHistory budgetId={id} recordLabel={sheet?.number ?? "Budget"} />
           </div>
         </TabsContent>
         <TabsContent value="materials"><LinesTable cols={MAT_COLS} api={mat} totalsKeys={["planned_amount", "actual_purchased_cost"]} /></TabsContent>

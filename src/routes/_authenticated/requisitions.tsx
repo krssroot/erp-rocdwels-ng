@@ -29,7 +29,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/requisitions")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): Record<string, string | undefined> & { status?: string; project?: string; from?: string; to?: string } => ({
     status: typeof search.status === "string" ? search.status : undefined,
     project: typeof search.project === "string" ? search.project : undefined,
     from: typeof search.from === "string" ? search.from : undefined,
@@ -253,7 +253,13 @@ function RequisitionDialog({ initial, onClose }: { initial: any | null; onClose:
     line.total = Number(line.qty ?? 0) * Number(line.unit_cost ?? 0);
     if ("qty" in patch || "unit_cost" in patch) patch.total = line.total;
     setLines(newLines);
+    // Never persist an item that isn't in the approved budget
+    if ("item_name" in patch && patch.item_name && !isInBudget(budgetItems, patch.item_name)) return;
+    if (!("item_name" in patch) && line.item_name && !isInBudget(budgetItems, line.item_name)) return;
     await supabase.from("requisition_lines").update(patch).eq("id", id);
+  }
+  function checkItem(name: string) {
+    if (name && !isInBudget(budgetItems, name)) toast.error("Item not in approved budget");
   }
   async function removeLine(id: string) {
     setLines((l) => l.filter((x) => x.id !== id));
@@ -358,6 +364,7 @@ function RequisitionDialog({ initial, onClose }: { initial: any | null; onClose:
                     value={l.item_name ?? ""}
                     placeholder="Approved budget item"
                     onChange={(e) => updateLine(l.id, { item_name: e.target.value })}
+                    onBlur={(e) => checkItem(e.target.value)}
                   />
                   {l.item_name && !isInBudget(budgetItems, l.item_name) && (
                     <p className="text-[11px] text-destructive mt-1">Item not in approved budget</p>
@@ -400,7 +407,7 @@ function RequisitionDialog({ initial, onClose }: { initial: any | null; onClose:
           </TabsContent>
           <TabsContent value="history">
             <div className="border rounded-lg bg-card p-4">
-              <ApprovalHistory requisitionId={reqId} />
+              <ApprovalHistory requisitionId={reqId} recordLabel={initial?.number ?? "Requisition"} />
             </div>
           </TabsContent>
 

@@ -18,7 +18,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/projects/")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): Record<string, string | undefined> & { status?: string; project?: string; from?: string; to?: string } => ({
     status: typeof search.status === "string" ? search.status : undefined,
   }),
   component: ProjectsPage,
