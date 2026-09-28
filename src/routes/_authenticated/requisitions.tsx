@@ -364,6 +364,7 @@ function RequisitionDialog({ initial, onClose }: { initial: any | null; onClose:
                     value={l.item_name ?? ""}
                     placeholder="Approved budget item"
                     onChange={(e) => updateLine(l.id, { item_name: e.target.value })}
+                    onBlur={(e) => checkItem(e.target.value)}
                   />
                   {l.item_name && !isInBudget(budgetItems, l.item_name) && (
                     <p className="text-[11px] text-destructive mt-1">Item not in approved budget</p>
@@ -406,7 +407,7 @@ function RequisitionDialog({ initial, onClose }: { initial: any | null; onClose:
           </TabsContent>
           <TabsContent value="history">
             <div className="border rounded-lg bg-card p-4">
-              <ApprovalHistory requisitionId={reqId} />
+              <ApprovalHistory requisitionId={reqId} recordLabel={initial?.number ?? "Requisition"} />
             </div>
           </TabsContent>
 
