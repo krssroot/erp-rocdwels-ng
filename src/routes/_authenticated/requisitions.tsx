@@ -29,7 +29,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/requisitions")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): Record<string, string | undefined> & { status?: string; project?: string; from?: string; to?: string } => ({
     status: typeof search.status === "string" ? search.status : undefined,
     project: typeof search.project === "string" ? search.project : undefined,
     from: typeof search.from === "string" ? search.from : undefined,

@@ -16,7 +16,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/cost-sheets/")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): Record<string, string | undefined> & { status?: string; project?: string; from?: string; to?: string } => ({
     from: typeof search.from === "string" ? search.from : undefined,
     to: typeof search.to === "string" ? search.to : undefined,
     status: typeof search.status === "string" ? search.status : undefined,
