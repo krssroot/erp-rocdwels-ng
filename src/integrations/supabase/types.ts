@@ -1666,29 +1666,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      can_manage_catalog: { Args: { _uid: string }; Returns: boolean }
-      can_manage_costing: { Args: { _uid: string }; Returns: boolean }
-      can_manage_procurement: { Args: { _uid: string }; Returns: boolean }
-      can_manage_requisitions: { Args: { _uid: string }; Returns: boolean }
-      can_manage_site: { Args: { _uid: string }; Returns: boolean }
       escalate_overdue_approvals: { Args: never; Returns: undefined }
       get_user_roles: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"][]
       }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      is_privileged: { Args: { _user_id: string }; Returns: boolean }
-      is_project_member: {
-        Args: { _project_id: string; _user_id: string }
-        Returns: boolean
-      }
-      is_staff: { Args: { _user_id: string }; Returns: boolean }
       notify_roles: {
         Args: {
           _body: string
