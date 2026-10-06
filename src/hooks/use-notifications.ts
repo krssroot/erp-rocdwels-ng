@@ -32,7 +32,7 @@ export function useNotifications(limit = 50) {
   // Live updates
   useEffect(() => {
     const channel = supabase
-      .channel("notifications-stream")
+      .channel(`notifications-stream-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => {
         qc.invalidateQueries({ queryKey: ["notifications"] });
       })
