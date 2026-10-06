@@ -56,7 +56,7 @@ export function Chatter({
 
   useEffect(() => {
     const channel = supabase
-      .channel(`chatter-${entityType}-${entityId}`)
+      .channel(`chatter-${entityType}-${entityId}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "discussions" }, () => {
         qc.invalidateQueries({ queryKey: key });
       })
